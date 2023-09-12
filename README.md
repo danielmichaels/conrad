@@ -1,6 +1,6 @@
 # conrad
 
-> Get your weather in PDF format for easy printing and distribution
+> 
 
 ## Server setup
 
