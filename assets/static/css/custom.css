@@ -1,0 +1,32 @@
+:root {
+    /*--spacing-company: 3rem;*/
+    --font-weight: 400;
+    --border-radius: 0;
+}
+
+h2,
+h3,
+hgroup > :last-child {
+    font-weight: 200;
+}
+
+small {
+    color: var(--muted-color);
+}
+
+body > header {
+    padding: 0;
+}
+
+header hgroup > :last-child {
+    color: var(--h3-color);
+}
+
+header hgroup {
+    margin-bottom: 0;
+}
+
+.error {
+    color: #C0392B;
+    display: block;
+}

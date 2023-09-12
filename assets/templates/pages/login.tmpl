@@ -1,0 +1,36 @@
+{{define "page:title"}}Login{{end}}
+
+{{define "page:main"}}
+  <div class="container">
+    <h2>Login</h2>
+    <form method="POST" action="/login">
+      <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+
+        {{if .Form.Validator.HasErrors}}
+          <div class="error">Something was wrong. Please correct the errors
+            below and try again.
+          </div>
+        {{end}}
+      <div>
+        <label for="email">Email:
+          {{with .Form.Validator.FieldErrors.Email}}
+            <span class="error">{{.}}</span>
+          {{end}}
+        <input id="email" type="email" name="Email" value="{{.Form.Email}}"
+               aria-invalid="{{if .Form.Validator.FieldErrors.Password}}true{{end}}">
+        </label>
+      </div>
+      <div>
+        <label for="password">Password:
+          {{with .Form.Validator.FieldErrors.Password}}
+            <span class="error">{{.}}</span>
+          {{end}}
+        <input id="password" type="password" name="Password" aria-invalid="{{if .Form.Validator.FieldErrors.Password}}true{{end}}">
+          </label>
+      </div>
+      <button>Login</button>
+    </form>
+    <p><a href="/signup">Need to register?</a></p>
+    <p><a href="/forgotten-password">Forgotten password?</a></p>
+  </div>
+{{end}}

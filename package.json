@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "alpine": "npx esbuild index.js --outfile=assets/static/js/bundle.js --bundle --minify"
+  },
+  "dependencies": {
+    "alpinejs": "^3.12.2",
+    "esbuild": "^0.15.14"
+  }
+}

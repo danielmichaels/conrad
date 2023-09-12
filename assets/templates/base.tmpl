@@ -1,0 +1,25 @@
+
+{{define "base"}}
+<!doctype html>
+<html lang='en'>
+    <head>
+        <meta charset='utf-8'>
+        <title>{{template "page:title" .}}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        {{block "page:meta" .}}{{end}}
+        <link rel="stylesheet" href="/static/css/pico.min.css?version={{.Version}}">
+        <link rel="stylesheet" href="/static/css/custom.css?version={{.Version}}">
+        <script src="/static/js/bundle.js?version={{.Version}}" defer></script>
+        <script src="/static/js/theme-switcher.js?version={{.Version}}" defer></script>
+    </head>
+    <body>
+        <header>
+            {{template "partial:nav" .}}
+        </header>
+        <main>
+            {{template "page:main" .}}
+        </main>
+        {{template "partial:footer" .}}
+    </body>
+</html>
+{{end}}
