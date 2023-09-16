@@ -30,3 +30,7 @@ header hgroup {
     color: #C0392B;
     display: block;
 }
+
+[x-cloak] {
+    display: none;
+}

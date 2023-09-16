@@ -1,0 +1,21 @@
+{{define "page:title"}}{{.AppName}} Dashboard{{end}}
+
+{{define "page:main"}}
+    {{if .Clients}}
+        {{template "clients-table" .}}
+    {{else}}
+      <div class="container">
+        <article>
+          <main>
+            <hgroup>
+              <h2>Welcome to {{.AppName}}</h2>
+              <p>No clients found in the database</p>
+            </hgroup>
+            <p>Get started by creating a new GitLab <a href="{{.FormURL}}"
+                                                       class="outline">client</a>.
+            </p>
+          </main>
+        </article>
+      </div>
+    {{end}}
+{{end}}

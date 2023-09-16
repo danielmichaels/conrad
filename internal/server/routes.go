@@ -15,8 +15,6 @@ func (app *Application) routes() http.Handler {
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Compress(5))
 	router.Use(httplog.RequestLogger(app.Logger))
-	//router.Use(app.preventCSRF)
-	//router.Use(app.authenticate)
 
 	router.NotFound(app.notFound)
 	router.MethodNotAllowed(app.methodNotAllowed)
@@ -24,9 +22,6 @@ func (app *Application) routes() http.Handler {
 	fileServer := http.FileServer(http.FS(assets.EmbeddedFiles))
 	router.Handle("/static/*", fileServer)
 
-	router.Group(func(hook chi.Router) {
-		hook.Post("/webhooks/gitlab", app.gitlabWebhook)
-	})
 	router.Get("/status", app.status)
 	router.Group(func(web chi.Router) {
 		web.Use(app.preventCSRF)
@@ -43,10 +38,17 @@ func (app *Application) routes() http.Handler {
 		web.Use(app.authenticate)
 		web.Use(app.requireAuthenticatedUser)
 		web.Post("/logout", app.userLogout)
-		web.Get("/dashboard", app.home)
+		web.Get("/dashboard", app.dashboard)
+		web.Post("/dashboard/clients", app.clients)
+		web.Get("/dashboard/clients", app.clients)
+		web.Get("/clients/{id}", app.clientDetails)
+		web.Post("/clients/{id}", app.clientDetails)
 	})
 	router.Group(func(api chi.Router) {
-		// api routes
+		api.Route("/slash", func(slash chi.Router) {
+			// slash specific api routes
+		})
+		// non-slash api routes
 	})
 
 	return router

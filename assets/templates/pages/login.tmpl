@@ -16,7 +16,7 @@
           {{with .Form.Validator.FieldErrors.Email}}
             <span class="error">{{.}}</span>
           {{end}}
-        <input id="email" type="email" name="Email" value="{{.Form.Email}}"
+        <input id="email" type="email" name="Email" value="{{.Form.Email}}" required
                aria-invalid="{{if .Form.Validator.FieldErrors.Password}}true{{end}}">
         </label>
       </div>
@@ -25,7 +25,7 @@
           {{with .Form.Validator.FieldErrors.Password}}
             <span class="error">{{.}}</span>
           {{end}}
-        <input id="password" type="password" name="Password" aria-invalid="{{if .Form.Validator.FieldErrors.Password}}true{{end}}">
+        <input id="password" type="password" name="Password" required aria-invalid="{{if .Form.Validator.FieldErrors.Password}}true{{end}}">
           </label>
       </div>
       <button>Login</button>

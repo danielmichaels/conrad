@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -25,6 +26,11 @@ type Application struct {
 	Mailer   *smtp.Mailer
 	Db       *repository.Queries
 	Sessions *sessions.CookieStore
+}
+
+// Ptr takes in non-pointer and returns a pointer
+func Ptr[T any](v T) *T {
+	return &v
 }
 
 func (app *Application) Serve() error {
@@ -91,4 +97,10 @@ func Matches(plaintextPassword, hashedPassword string) (bool, error) {
 	}
 
 	return true, nil
+}
+func formatURL(url string) string {
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		url = "https://" + url
+	}
+	return fmt.Sprintf("%s", url)
 }
