@@ -142,13 +142,12 @@ func (app *Application) userLogin(w http.ResponseWriter, r *http.Request) {
 
 		user, err := app.Db.GetUserByEmail(context.Background(), form.Email)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				form.Validator.AddFieldError("Email", "Invalid credentials")
-				form.Validator.AddFieldError("Password", "Invalid credentials")
-			} else {
+			if !errors.Is(err, sql.ErrNoRows) {
 				app.serverError(w, r, err)
 				return
 			}
+			form.Validator.AddFieldError("Email", "Invalid credentials")
+			form.Validator.AddFieldError("Password", "Invalid credentials")
 		}
 
 		form.Validator.CheckField(form.Email != "", "Email", "Email is required")
@@ -280,6 +279,11 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 			GitlabUrl:   form.GitLabURL,
 			WebhookUrl:  form.WebhookURL,
 		})
+		if err != nil {
+			app.Logger.Error().Err(err).Msg("new_client_insert_error")
+			app.serverError(w, r, err)
+			return
+		}
 
 		for _, p := range projects {
 			err := app.Db.InsertClientRepo(context.Background(), repository.InsertClientRepoParams{
@@ -312,10 +316,12 @@ func (app *Application) clientDetails(w http.ResponseWriter, r *http.Request) {
 	client, err := app.Db.GetClientById(context.Background(), int64(id))
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			app.Logger.Error().Err(err).Msg("provider-not-found")
+			app.Logger.Error().Err(err).Msg("repos_not_found")
 			app.serverError(w, r, err)
 			return
 		}
+		app.notFound(w, r)
+		return
 	}
 
 	data := app.newTemplateData(r)

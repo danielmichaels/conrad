@@ -14,7 +14,8 @@ func (app *Application) routes() http.Handler {
 	router.Use(app.securityHeaders)
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Compress(5))
-	router.Use(httplog.RequestLogger(app.Logger))
+	router.Use(httplog.RequestLogger(app.Logger, nil))
+	router.Use(middleware.Heartbeat("/ping"))
 
 	router.NotFound(app.notFound)
 	router.MethodNotAllowed(app.methodNotAllowed)

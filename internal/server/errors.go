@@ -17,6 +17,7 @@ type Error struct {
 }
 
 func (app *Application) errorMessage(w http.ResponseWriter, r *http.Request, e Error, headers http.Header) {
+	app.Logger.Error().Str("err_code", string(e.Code)).Stack().Send()
 	err := render.JSONWithHeaders(w, int(e.Code), e, headers)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -32,18 +33,39 @@ func (app *Application) serverError(w http.ResponseWriter, r *http.Request, err 
 }
 
 func (app *Application) notFound(w http.ResponseWriter, r *http.Request) {
-	err := render.Page(w, http.StatusUnprocessableEntity, nil, "pages/404.tmpl")
-	if err != nil {
-		app.serverError(w, r, err)
+	accept := r.Header.Get("Accept")
+	switch accept {
+	case "application/json":
+		message := "not found"
+		app.errorMessage(w, r, Error{
+			Code:   http.StatusNotFound,
+			Status: message,
+		}, nil)
+	default:
+		err := render.Page(w, http.StatusUnprocessableEntity, nil, "pages/404.tmpl")
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
 	}
 }
 
 func (app *Application) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
-	message := fmt.Sprintf("The %s method is not supported for this resource", r.Method)
-	app.errorMessage(w, r, Error{
-		Code:   http.StatusMethodNotAllowed,
-		Status: message,
-	}, nil)
+	accept := r.Header.Get("Accept")
+	switch accept {
+	case "application/json":
+		message := fmt.Sprintf("The %s method is not supported for this resource", r.Method)
+		app.errorMessage(w, r, Error{
+			Code:   http.StatusMethodNotAllowed,
+			Status: message,
+		}, nil)
+	default:
+		err := render.Page(w, http.StatusMethodNotAllowed, nil, "pages/405.tmpl")
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+	}
 }
 
 func (app *Application) badRequest(w http.ResponseWriter, r *http.Request, err error) {
