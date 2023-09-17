@@ -301,7 +301,7 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/dashboard/clients/%d", id), http.StatusTemporaryRedirect)
 	}
 }
-func (app *Application) clientDetails(w http.ResponseWriter, r *http.Request) {
+func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 	var form struct {
 		RepoID    []int64             `form:"RepoID"`
 		Validator validator.Validator `form:"-"`
@@ -341,7 +341,7 @@ func (app *Application) clientDetails(w http.ResponseWriter, r *http.Request) {
 		//data["Repos"] = nil
 		data["FormURL"] = fmt.Sprintf("/dashboard/clients/%d", id)
 
-		err = render.Page(w, http.StatusOK, data, "pages/client.tmpl")
+		err = render.Page(w, http.StatusOK, data, "pages/client-home.tmpl")
 		if err != nil {
 			app.serverError(w, r, err)
 		}
@@ -377,5 +377,103 @@ func (app *Application) clientDetails(w http.ResponseWriter, r *http.Request) {
 		data["Repos"] = repos
 		data["FormURL"] = fmt.Sprintf("/dashboard/clients/%d", id)
 		http.Redirect(w, r, fmt.Sprintf("/dashboard/clients/%d", id), http.StatusSeeOther)
+	}
+}
+func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
+	var form struct {
+		Validator validator.Validator `form:"-"`
+	}
+	param := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(param)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	pageURL := fmt.Sprintf("/dashboard/clients/%d/gitlab", id)
+	client, err := app.Db.GetClientById(context.Background(), int64(id))
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			app.Logger.Error().Err(err).Msg("client_by_id")
+			app.serverError(w, r, err)
+			return
+		}
+		app.notFound(w, r)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		data := app.newTemplateData(r)
+		data["Form"] = form
+		data["Clients"] = client
+		data["FormURL"] = pageURL
+
+		err = render.Page(w, http.StatusOK, data, "pages/client-gitlab.tmpl")
+		if err != nil {
+			app.serverError(w, r, err)
+		}
+
+	case http.MethodPost:
+		err := render.DecodePostForm(r, &form)
+		if err != nil {
+			app.Logger.Error().Err(err).Send()
+			app.badRequest(w, r, err)
+			return
+		}
+
+		data := app.newTemplateData(r)
+		data["Form"] = form
+		data["Clients"] = client
+		data["FormURL"] = pageURL
+		http.Redirect(w, r, pageURL, http.StatusSeeOther)
+	}
+}
+func (app *Application) clientNotifications(w http.ResponseWriter, r *http.Request) {
+	var form struct {
+		Validator validator.Validator `form:"-"`
+	}
+	param := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(param)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	pageURL := fmt.Sprintf("/dashboard/clients/%d/notifications", id)
+	client, err := app.Db.GetClientById(context.Background(), int64(id))
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			app.Logger.Error().Err(err).Msg("client_by_id")
+			app.serverError(w, r, err)
+			return
+		}
+		app.notFound(w, r)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		data := app.newTemplateData(r)
+		data["Form"] = form
+		data["Clients"] = client
+		data["FormURL"] = pageURL
+
+		err = render.Page(w, http.StatusOK, data, "pages/client-notifications.tmpl")
+		if err != nil {
+			app.serverError(w, r, err)
+		}
+
+	case http.MethodPost:
+		err := render.DecodePostForm(r, &form)
+		if err != nil {
+			app.Logger.Error().Err(err).Send()
+			app.badRequest(w, r, err)
+			return
+		}
+
+		data := app.newTemplateData(r)
+		data["Form"] = form
+		data["Clients"] = client
+		data["FormURL"] = pageURL
+		http.Redirect(w, r, pageURL, http.StatusSeeOther)
 	}
 }

@@ -2,6 +2,7 @@
 
 {{define "page:main"}}
     {{$furl := .FormURL}}
+        {{template "client-home-nav" .}}
     <div class="container">
         {{if .Repos}}
           <hgroup>

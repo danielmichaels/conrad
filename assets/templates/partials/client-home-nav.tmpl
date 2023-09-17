@@ -1,0 +1,12 @@
+{{define "client-home-nav"}}
+    <nav class="container">
+      <ul>
+        <li><strong>{{.Clients.Name}}</strong></li>
+      </ul>
+      <ul>
+        <li><a href="/dashboard/clients/{{.Clients.ID}}">Repositories</a></li>
+        <li><a href="/dashboard/clients/{{.Clients.ID}}/gitlab">Gitlab Connection</a></li>
+        <li><a href="/dashboard/clients/{{.Clients.ID}}/notifications">Notifications</a></li>
+      </ul>
+    </nav>
+{{end}}

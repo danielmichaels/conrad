@@ -14,7 +14,11 @@ func (app *Application) routes() http.Handler {
 	router.Use(app.securityHeaders)
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Compress(5))
-	router.Use(httplog.RequestLogger(app.Logger, nil))
+	router.Use(httplog.RequestLogger(app.Logger, []string{
+		"/favicon.ico",
+		"/status",
+		"/ping",
+	}))
 	router.Use(middleware.Heartbeat("/ping"))
 
 	router.NotFound(app.notFound)
@@ -42,8 +46,12 @@ func (app *Application) routes() http.Handler {
 		web.Get("/dashboard", app.dashboard)
 		web.Post("/dashboard/clients", app.clients)
 		web.Get("/dashboard/clients", app.clients)
-		web.Get("/dashboard/clients/{id}", app.clientDetails)
-		web.Post("/dashboard/clients/{id}", app.clientDetails)
+		web.Get("/dashboard/clients/{id}", app.clientHome)
+		web.Post("/dashboard/clients/{id}", app.clientHome)
+		web.Get("/dashboard/clients/{id}/gitlab", app.clientGitlab)
+		web.Post("/dashboard/clients/{id}/gitlab", app.clientGitlab)
+		web.Get("/dashboard/clients/{id}/notifications", app.clientNotifications)
+		web.Post("/dashboard/clients/{id}/notifications", app.clientNotifications)
 	})
 	router.Group(func(api chi.Router) {
 		api.Route("/slash", func(slash chi.Router) {
