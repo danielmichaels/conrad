@@ -19,6 +19,9 @@ func ServeCmd(ctx context.Context) *cobra.Command {
 		Short: "start the webserver",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := cmdutils.NewLogger("server", cfg)
+			if cfg.AppConf.LogCaller {
+				logger = logger.With().Caller().Logger()
+			}
 
 			dbc, err := cmdutils.NewDatabasePool(ctx, cfg)
 			if err != nil {

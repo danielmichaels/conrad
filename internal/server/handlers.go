@@ -12,36 +12,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/xanzy/go-gitlab"
 	"net/http"
+	"slices"
 	"strconv"
 )
-
-func (app *Application) home(w http.ResponseWriter, r *http.Request) {
-	data := app.newTemplateData(r)
-	err := render.Page(w, http.StatusOK, data, "pages/home.tmpl")
-	if err != nil {
-		app.serverError(w, r, err)
-	}
-}
-func (app *Application) dashboard(w http.ResponseWriter, r *http.Request) {
-	clients, err := app.Db.GetAllClients(context.Background())
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			app.Logger.Error().Err(err).Msg("provider-not-found")
-			app.serverError(w, r, err)
-			return
-		}
-	}
-
-	data := app.newTemplateData(r)
-	data["Clients"] = clients
-	data["FormURL"] = "/dashboard/clients"
-	err = render.Page(w, http.StatusOK, data, "pages/dashboard.tmpl")
-	if err != nil {
-		app.Logger.Error().Err(err).Msg("provider-not-found")
-		app.serverError(w, r, err)
-		return
-	}
-}
 
 func (app *Application) userSignup(w http.ResponseWriter, r *http.Request) {
 	var form struct {
@@ -211,14 +184,40 @@ func (app *Application) userLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+func (app *Application) home(w http.ResponseWriter, r *http.Request) {
+	data := app.newTemplateData(r)
+	err := render.Page(w, http.StatusOK, data, "pages/home.tmpl")
+	if err != nil {
+		app.serverError(w, r, err)
+	}
+}
+func (app *Application) dashboard(w http.ResponseWriter, r *http.Request) {
+	clients, err := app.Db.GetAllClients(context.Background())
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			app.Logger.Error().Err(err).Msg("provider-not-found")
+			app.serverError(w, r, err)
+			return
+		}
+	}
+
+	data := app.newTemplateData(r)
+	data["Clients"] = clients
+	data["FormURL"] = "/dashboard/clients"
+	err = render.Page(w, http.StatusOK, data, "pages/dashboard.tmpl")
+	if err != nil {
+		app.Logger.Error().Err(err).Msg("provider-not-found")
+		app.serverError(w, r, err)
+		return
+	}
+}
 func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 	var form struct {
-		Name                string              `form:"Name"`
-		WebhookURL          string              `form:"WebhookURL"`
-		GitLabURL           string              `form:"GitLabURL"`
-		ClientToken         string              `form:"ClientToken"`
-		TrackedRepositories []string            `form:"TrackedRepositories"`
-		Validator           validator.Validator `form:"-"`
+		Name        string              `form:"Name"`
+		WebhookURL  string              `form:"WebhookURL"`
+		GitLabURL   string              `form:"GitLabURL"`
+		ClientToken string              `form:"ClientToken"`
+		Validator   validator.Validator `form:"-"`
 	}
 
 	switch r.Method {
@@ -287,9 +286,10 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 
 		for _, p := range projects {
 			err := app.Db.InsertClientRepo(context.Background(), repository.InsertClientRepoParams{
-				Name:     p.Name,
-				RepoID:   int64(p.ID),
-				ClientID: id,
+				Name:       p.Name,
+				RepoID:     int64(p.ID),
+				ClientID:   id,
+				RepoWebUrl: p.WebURL,
 			})
 			if err != nil {
 				app.Logger.Error().Err(err).Interface("data", Map{
@@ -297,73 +297,85 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 				}).Send()
 			}
 		}
-		if err != nil {
-			// fixme
-			app.serverError(w, r, err)
-			return
-		}
-		http.Redirect(w, r, fmt.Sprintf("/clients/%d", id), http.StatusTemporaryRedirect)
+
+		http.Redirect(w, r, fmt.Sprintf("/dashboard/clients/%d", id), http.StatusTemporaryRedirect)
 	}
 }
 func (app *Application) clientDetails(w http.ResponseWriter, r *http.Request) {
+	var form struct {
+		RepoID    []int64             `form:"RepoID"`
+		Validator validator.Validator `form:"-"`
+	}
 	param := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(param)
 	if err != nil {
-		// fixme
 		app.serverError(w, r, err)
 		return
 	}
 	client, err := app.Db.GetClientById(context.Background(), int64(id))
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			app.Logger.Error().Err(err).Msg("repos_not_found")
+			app.Logger.Error().Err(err).Msg("client_by_id")
 			app.serverError(w, r, err)
 			return
 		}
 		app.notFound(w, r)
 		return
 	}
-
-	data := app.newTemplateData(r)
-	data["Clients"] = client
-	data["FormURL"] = fmt.Sprintf("/clients/%d", id)
-	err = render.Page(w, http.StatusOK, data, "pages/client.tmpl")
+	repos, err := app.Db.GetAllClientRepos(context.Background(), int64(id))
 	if err != nil {
-		app.serverError(w, r, err)
+		if !errors.Is(err, sql.ErrNoRows) {
+			app.Logger.Error().Err(err).Msg("client_not_found")
+			app.serverError(w, r, err)
+			return
+		}
+		app.notFound(w, r)
 		return
 	}
-}
+	switch r.Method {
+	case http.MethodGet:
+		data := app.newTemplateData(r)
+		data["Form"] = form
+		data["Clients"] = client
+		data["Repos"] = repos
+		//data["Repos"] = nil
+		data["FormURL"] = fmt.Sprintf("/dashboard/clients/%d", id)
 
-//
-//func (app *Application) gitlabWebhook(w http.ResponseWriter, r *http.Request) {
-//	hook, err := gitlab.New(gitlab.Options.Secret(app.Config.Secrets.GitlabWHVerifySecret))
-//	if err != nil {
-//		app.serverError(w, r, err)
-//		return
-//	}
-//	payload, err := hook.Parse(r, gitlab.CommentEvents, gitlab.MergeRequestEvents)
-//	if err != nil {
-//		if errors.Is(err, gitlab.ErrEventNotFound) {
-//			app.errorHookEventNotFound(w, r)
-//		}
-//		app.Logger.Error().Err(err).Send()
-//		return
-//	}
-//	switch payload.(type) {
-//	case gitlab.MergeRequestEventPayload:
-//		mr := payload.(gitlab.MergeRequestEventPayload)
-//		fmt.Printf("%+v\n", mr)
-//		_ = render.JSON(w, http.StatusOK, nil)
-//	case gitlab.CommentEventPayload:
-//		comment := payload.(gitlab.CommentEventPayload)
-//		fmt.Printf("%+v\n", comment)
-//		_ = render.JSON(w, http.StatusOK, nil)
-//	case gitlab.PushEventPayload:
-//		comment := payload.(gitlab.PushEventPayload)
-//		fmt.Printf("%+v\n", comment)
-//		_ = render.JSON(w, http.StatusOK, nil)
-//	default:
-//		app.Logger.Warn().Msgf("unknown hook: %v", hook)
-//		_ = render.JSON(w, http.StatusOK, nil)
-//	}
-//}
+		err = render.Page(w, http.StatusOK, data, "pages/client.tmpl")
+		if err != nil {
+			app.serverError(w, r, err)
+		}
+
+	case http.MethodPost:
+		err := render.DecodePostForm(r, &form)
+		if err != nil {
+			app.Logger.Error().Err(err).Send()
+			app.badRequest(w, r, err)
+			return
+		}
+		found := make([]int64, 0, len(form.RepoID))
+		for _, v := range form.RepoID {
+			found = append(found, v)
+		}
+		for _, v := range repos {
+			var tracked int64 = 0
+			if slices.Contains(found, v.RepoID) {
+				tracked = 1
+			}
+			err := app.Db.UpdateTrackedRepoStatus(context.Background(), repository.UpdateTrackedRepoStatusParams{
+				Tracked: tracked,
+				RepoID:  v.RepoID,
+			})
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+		}
+		data := app.newTemplateData(r)
+		data["Form"] = form
+		data["Clients"] = client
+		data["Repos"] = repos
+		data["FormURL"] = fmt.Sprintf("/dashboard/clients/%d", id)
+		http.Redirect(w, r, fmt.Sprintf("/dashboard/clients/%d", id), http.StatusSeeOther)
+	}
+}

@@ -1,9 +1,10 @@
 {{define "clients-table"}}
+  {{ $furl := .FormURL}}
   <section class="container" id="clients-table">
     <h2>Client List</h2>
     <figure>
       <div>
-        <a href="{{.FormURL}}" role="button">Create New Client</a>
+        <a href="{{$furl}}" role="button">Create New Client</a>
       </div>
       <table role="grid">
         <thead>
@@ -17,12 +18,12 @@
         <tbody>
         {{range $idx, $val := .Clients}}
               <tr>
-                <th scope="row"><a href="/clients/{{.ID}}">{{$idx | incr}}</a></th>
+                <th scope="row"><a href="{{$furl}}/{{.ID}}">{{$idx | incr}}</a></th>
                 <td>{{.Name}}</td>
-                <td>null</td>
+                <td>{{.RepoCount}}</td>
                 <td>
                   <div role="group">
-                    <a class="outline" role="button" href="/clients/{{.ID}}">View</a>
+                    <a class="outline" role="button" href="{{$furl}}/{{.ID}}">View</a>
                     <a class="outline secondary" role="button" href="#" @click="console.log('this will delete, are you sure?')">Delete</a>
                   </div>
               </tr>

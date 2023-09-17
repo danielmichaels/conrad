@@ -42,8 +42,8 @@ func (app *Application) routes() http.Handler {
 		web.Get("/dashboard", app.dashboard)
 		web.Post("/dashboard/clients", app.clients)
 		web.Get("/dashboard/clients", app.clients)
-		web.Get("/clients/{id}", app.clientDetails)
-		web.Post("/clients/{id}", app.clientDetails)
+		web.Get("/dashboard/clients/{id}", app.clientDetails)
+		web.Post("/dashboard/clients/{id}", app.clientDetails)
 	})
 	router.Group(func(api chi.Router) {
 		api.Route("/slash", func(slash chi.Router) {
