@@ -21,12 +21,14 @@ type GitlabClients struct {
 }
 
 type GitlabRepos struct {
-	ID        int64  `json:"id"`
-	RepoID    int64  `json:"repo_id"`
-	Name      string `json:"name"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
-	ClientID  int64  `json:"client_id"`
+	ID         int64  `json:"id"`
+	RepoID     int64  `json:"repo_id"`
+	RepoWebUrl string `json:"repo_web_url"`
+	Tracked    int64  `json:"tracked"`
+	Name       string `json:"name"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
+	ClientID   int64  `json:"client_id"`
 }
 
 type Users struct {

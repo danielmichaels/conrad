@@ -9,20 +9,76 @@ import (
 	"context"
 )
 
-const getAllClients = `-- name: GetAllClients :many
-SELECT id, name, created_at, updated_at, created_by, webhook_url, gitlab_url, interval, access_token
-FROM gitlab_clients
+const getAllClientRepos = `-- name: GetAllClientRepos :many
+SELECT gr.id, gr.repo_id, gr.repo_web_url, gr.tracked, gr.name, gr.created_at, gr.updated_at, gr.client_id
+FROM gitlab_repos gr
+         INNER JOIN gitlab_clients gc ON gr.client_id = gc.id
+WHERE gc.id = ?
 `
 
-func (q *Queries) GetAllClients(ctx context.Context) ([]GitlabClients, error) {
+func (q *Queries) GetAllClientRepos(ctx context.Context, id int64) ([]GitlabRepos, error) {
+	rows, err := q.db.QueryContext(ctx, getAllClientRepos, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GitlabRepos{}
+	for rows.Next() {
+		var i GitlabRepos
+		if err := rows.Scan(
+			&i.ID,
+			&i.RepoID,
+			&i.RepoWebUrl,
+			&i.Tracked,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ClientID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllClients = `-- name: GetAllClients :many
+SELECT gc.id, gc.name, gc.created_at, gc.updated_at, gc.created_by, gc.webhook_url, gc.gitlab_url, gc.interval, gc.access_token, COUNT(gr.id) AS repo_count
+FROM gitlab_clients gc
+         LEFT JOIN gitlab_repos gr ON gc.id = gr.client_id
+GROUP BY gc.id
+`
+
+type GetAllClientsRow struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+	CreatedBy   int64  `json:"created_by"`
+	WebhookUrl  string `json:"webhook_url"`
+	GitlabUrl   string `json:"gitlab_url"`
+	Interval    int64  `json:"interval"`
+	AccessToken string `json:"access_token"`
+	RepoCount   int64  `json:"repo_count"`
+}
+
+// SELECT *
+// FROM gitlab_clients;
+func (q *Queries) GetAllClients(ctx context.Context) ([]GetAllClientsRow, error) {
 	rows, err := q.db.QueryContext(ctx, getAllClients)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GitlabClients{}
+	items := []GetAllClientsRow{}
 	for rows.Next() {
-		var i GitlabClients
+		var i GetAllClientsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -33,6 +89,7 @@ func (q *Queries) GetAllClients(ctx context.Context) ([]GitlabClients, error) {
 			&i.GitlabUrl,
 			&i.Interval,
 			&i.AccessToken,
+			&i.RepoCount,
 		); err != nil {
 			return nil, err
 		}
@@ -72,24 +129,30 @@ func (q *Queries) GetClientById(ctx context.Context, id int64) (GitlabClients, e
 
 const insertClientRepo = `-- name: InsertClientRepo :exec
 INSERT OR IGNORE INTO gitlab_repos
-(name,repo_id, client_id)
-VALUES (?,?,?)
+    (name, repo_id, client_id, repo_web_url)
+VALUES (?, ?, ?, ?)
 `
 
 type InsertClientRepoParams struct {
-	Name     string `json:"name"`
-	RepoID   int64  `json:"repo_id"`
-	ClientID int64  `json:"client_id"`
+	Name       string `json:"name"`
+	RepoID     int64  `json:"repo_id"`
+	ClientID   int64  `json:"client_id"`
+	RepoWebUrl string `json:"repo_web_url"`
 }
 
 func (q *Queries) InsertClientRepo(ctx context.Context, arg InsertClientRepoParams) error {
-	_, err := q.db.ExecContext(ctx, insertClientRepo, arg.Name, arg.RepoID, arg.ClientID)
+	_, err := q.db.ExecContext(ctx, insertClientRepo,
+		arg.Name,
+		arg.RepoID,
+		arg.ClientID,
+		arg.RepoWebUrl,
+	)
 	return err
 }
 
 const insertNewClient = `-- name: InsertNewClient :one
 INSERT INTO gitlab_clients
-    (name, created_by, access_token, webhook_url, gitlab_url)
+(name, created_by, access_token, webhook_url, gitlab_url)
 VALUES (?, ?, ?, ?, ?)
 RETURNING id
 `
@@ -113,4 +176,20 @@ func (q *Queries) InsertNewClient(ctx context.Context, arg InsertNewClientParams
 	var id int64
 	err := row.Scan(&id)
 	return id, err
+}
+
+const updateTrackedRepoStatus = `-- name: UpdateTrackedRepoStatus :exec
+UPDATE gitlab_repos
+SET tracked = ?
+WHERE repo_id = ?
+`
+
+type UpdateTrackedRepoStatusParams struct {
+	Tracked int64 `json:"tracked"`
+	RepoID  int64 `json:"repo_id"`
+}
+
+func (q *Queries) UpdateTrackedRepoStatus(ctx context.Context, arg UpdateTrackedRepoStatusParams) error {
+	_, err := q.db.ExecContext(ctx, updateTrackedRepoStatus, arg.Tracked, arg.RepoID)
+	return err
 }

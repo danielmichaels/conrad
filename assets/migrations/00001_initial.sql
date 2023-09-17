@@ -24,13 +24,16 @@ CREATE TABLE gitlab_clients
 );
 CREATE TABLE gitlab_repos
 (
-    id         INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    repo_id    INTEGER NOT NULL,
-    name       TEXT    NOT NULL,
-    created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    client_id  INTEGER NOT NULL,
-    FOREIGN KEY (client_id) REFERENCES gitlab_clients (id),
+    id           INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    repo_id      INTEGER NOT NULL,
+    repo_web_url TEXT    NOT NULL,
+    -- tracked: 0 is false, 1 is true
+    tracked      INTEGER NOT NULL DEFAULT 0,
+    name         TEXT    NOT NULL,
+    created_at   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    client_id    INTEGER NOT NULL,
+    FOREIGN KEY (client_id) REFERENCES gitlab_clients (id) ON DELETE CASCADE,
     UNIQUE (repo_id, client_id)
 );
 CREATE TRIGGER updated_at_users
