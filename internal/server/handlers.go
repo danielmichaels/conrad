@@ -217,6 +217,7 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 		WebhookURL  string              `form:"WebhookURL"`
 		GitLabURL   string              `form:"GitLabURL"`
 		ClientToken string              `form:"ClientToken"`
+		Insecure    string              `form:"Insecure"`
 		Validator   validator.Validator `form:"-"`
 	}
 
@@ -239,7 +240,11 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 		}
 		form.GitLabURL = formatURL(form.GitLabURL)
 
-		glab, err := hooks.NewGitlab(form.ClientToken, form.GitLabURL, true)
+		insecure := false
+		if form.Insecure == "on" {
+			insecure = true
+		}
+		glab, err := hooks.NewGitlab(form.ClientToken, form.GitLabURL, insecure)
 		if err != nil {
 			app.Logger.Error().Err(err).Msg("gitlab_client_err")
 			app.serverError(w, r, err)
@@ -277,6 +282,7 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 			AccessToken: form.ClientToken,
 			GitlabUrl:   form.GitLabURL,
 			WebhookUrl:  form.WebhookURL,
+			Insecure:    isInsecure(form.Insecure),
 		})
 		if err != nil {
 			app.Logger.Error().Err(err).Msg("new_client_insert_error")
@@ -298,7 +304,7 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("/dashboard/clients/%d", id), http.StatusTemporaryRedirect)
+		http.Redirect(w, r, fmt.Sprintf("/dashboard/clients/%d", id), http.StatusSeeOther)
 	}
 }
 func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
@@ -306,10 +312,9 @@ func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 		RepoID    []int64             `form:"RepoID"`
 		Validator validator.Validator `form:"-"`
 	}
-	param := chi.URLParam(r, "id")
-	id, err := strconv.Atoi(param)
+	id, err := urlIDParam(w, r)
 	if err != nil {
-		app.serverError(w, r, err)
+		app.notFound(w, r)
 		return
 	}
 	client, err := app.Db.GetClientById(context.Background(), int64(id))
@@ -338,7 +343,6 @@ func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 		data["Form"] = form
 		data["Clients"] = client
 		data["Repos"] = repos
-		//data["Repos"] = nil
 		data["FormURL"] = fmt.Sprintf("/dashboard/clients/%d", id)
 
 		err = render.Page(w, http.StatusOK, data, "pages/client-home.tmpl")
@@ -354,9 +358,7 @@ func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		found := make([]int64, 0, len(form.RepoID))
-		for _, v := range form.RepoID {
-			found = append(found, v)
-		}
+		found = append(found, form.RepoID...)
 		for _, v := range repos {
 			var tracked int64 = 0
 			if slices.Contains(found, v.RepoID) {
@@ -379,18 +381,24 @@ func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/dashboard/clients/%d", id), http.StatusSeeOther)
 	}
 }
+
 func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
 	var form struct {
-		Validator validator.Validator `form:"-"`
+		Name        string              `form:"Name"`
+		GitLabURL   string              `form:"GitLabURL"`
+		ClientToken string              `form:"ClientToken"`
+		Insecure    string              `form:"Insecure"`
+		Validator   validator.Validator `form:"-"`
 	}
-	param := chi.URLParam(r, "id")
-	id, err := strconv.Atoi(param)
+
+	id, err := urlIDParam(w, r)
 	if err != nil {
-		app.serverError(w, r, err)
+		app.notFound(w, r)
 		return
 	}
 	pageURL := fmt.Sprintf("/dashboard/clients/%d/gitlab", id)
-	client, err := app.Db.GetClientById(context.Background(), int64(id))
+	client, err := app.Db.GetClientById(ctx, id)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			app.Logger.Error().Err(err).Msg("client_by_id")
@@ -401,9 +409,20 @@ func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	form.ClientToken = client.AccessToken
+	form.Insecure = isInsecure(client.Insecure)
+	form.Name = client.Name
+	form.GitLabURL = client.GitlabUrl
+
+	data := app.newTemplateData(r)
+	data["Form"] = form
+	data["Clients"] = client
+	data["FormURL"] = pageURL
+
 	switch r.Method {
 	case http.MethodGet:
 		data := app.newTemplateData(r)
+
 		data["Form"] = form
 		data["Clients"] = client
 		data["FormURL"] = pageURL
@@ -420,12 +439,75 @@ func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 			app.badRequest(w, r, err)
 			return
 		}
+		form.GitLabURL = formatURL(form.GitLabURL)
 
-		data := app.newTemplateData(r)
-		data["Form"] = form
-		data["Clients"] = client
-		data["FormURL"] = pageURL
-		http.Redirect(w, r, pageURL, http.StatusSeeOther)
+		insecure := false
+		if form.Insecure == "true" {
+			insecure = true
+		}
+		glab, err := hooks.NewGitlab(form.ClientToken, form.GitLabURL, insecure)
+		if err != nil {
+			app.Logger.Error().Err(err).Msg("gitlab_client_err")
+			app.serverError(w, r, err)
+		}
+		projects, _, err := glab.Client.Projects.ListProjects(&gitlab.ListProjectsOptions{
+			Membership: Ptr(true),
+		})
+		if err != nil {
+			var ge *gitlab.ErrorResponse
+			if errors.As(err, &ge) {
+				form.Validator.AddFieldError("ClientToken", fmt.Sprintf("Invalid token: %q", ge.Response.Status))
+			}
+			app.Logger.Error().Err(err).
+				Interface("gitlab_error", Map{"message": ge.Message, "status": ge.Response.Status}).
+				Msg("gitlab-auth-failure")
+		}
+
+		form.Validator.CheckField(form.Name != "", "Name", "Name is required")
+		form.Validator.CheckField(validator.IsURL(form.GitLabURL), "GitLabURL", "Value is not a valid URL")
+		if form.Validator.HasErrors() {
+			data := app.newTemplateData(r)
+			data["Form"] = form
+			data["Clients"] = client
+			data["FormURL"] = pageURL
+
+			err := render.Page(w, http.StatusUnprocessableEntity, data, "pages/create-clients.tmpl")
+			if err != nil {
+				app.serverError(w, r, err)
+			}
+			return
+		}
+		id, err := app.Db.UpdateExistingClient(ctx, repository.UpdateExistingClientParams{
+			Name:        form.Name,
+			CreatedBy:   contextGetAuthenticatedUser(r).ID,
+			AccessToken: form.ClientToken,
+			GitlabUrl:   form.GitLabURL,
+			Insecure:    isInsecure(form.Insecure),
+			ID:          id,
+		})
+		if err != nil {
+			app.Logger.Error().Err(err).Msg("new_client_insert_error")
+			app.serverError(w, r, err)
+			return
+		}
+
+		// Check if any of the existing tracked repositories have changed
+		for _, p := range projects {
+			params := repository.UpsertClientRepoParams{
+				Name:       p.Name,
+				RepoID:     int64(p.ID),
+				ClientID:   id,
+				RepoWebUrl: p.WebURL,
+			}
+			err := app.Db.UpsertClientRepo(ctx, params)
+			if err != nil {
+				app.Logger.Error().Err(err).Interface("data", Map{"repo_id": p.ID}).Send()
+				app.serverError(w, r, err)
+				return
+			}
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("/dashboard/clients/%d", id), http.StatusSeeOther)
 	}
 }
 func (app *Application) clientNotifications(w http.ResponseWriter, r *http.Request) {

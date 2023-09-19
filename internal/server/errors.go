@@ -17,7 +17,6 @@ type Error struct {
 }
 
 func (app *Application) errorMessage(w http.ResponseWriter, r *http.Request, e Error, headers http.Header) {
-	app.Logger.Error().Str("err_code", string(e.Code)).Stack().Send()
 	err := render.JSONWithHeaders(w, int(e.Code), e, headers)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -25,6 +24,7 @@ func (app *Application) errorMessage(w http.ResponseWriter, r *http.Request, e E
 }
 
 func (app *Application) serverError(w http.ResponseWriter, r *http.Request, err error) {
+	app.Logger.Error().Err(err).Stack().Send()
 	err = render.Page(w, http.StatusUnprocessableEntity, nil, "pages/500.tmpl")
 	if err != nil {
 		app.serverError(w, r, err)

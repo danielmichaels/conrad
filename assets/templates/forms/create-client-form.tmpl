@@ -59,6 +59,14 @@
             <small>You'll need to create a <a href="https://developers.mattermost.com/integrate/webhooks/incoming/">Incoming Webhook</a> in your Mattermost instance.</small>
           </label>
         </div>
+        <fieldset>
+          <legend>Insecure Skip Verify:</legend>
+          <label>
+            <input type="checkbox" name="Insecure" role="switch"/>
+          </label>
+          <small>Is your GitLab instance running HTTP, or using a self-signed
+            certificate? You made need to select this.</small>
+        </fieldset>
         <button>Create</button>
       </form>
     </article>
