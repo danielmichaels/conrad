@@ -234,10 +234,9 @@ const upsertClientRepo = `-- name: UpsertClientRepo :exec
 INSERT INTO gitlab_repos
     (name, repo_id, client_id, repo_web_url)
 VALUES (?, ?, ?, ?)
-ON CONFLICT(repo_id) DO UPDATE SET
-    name = excluded.name,
-    client_id = excluded.client_id,
-    repo_web_url = excluded.repo_web_url
+ON CONFLICT(repo_id) DO UPDATE SET name         = excluded.name,
+                                   client_id    = excluded.client_id,
+                                   repo_web_url = excluded.repo_web_url
 `
 
 type UpsertClientRepoParams struct {
@@ -247,11 +246,6 @@ type UpsertClientRepoParams struct {
 	RepoWebUrl string `json:"repo_web_url"`
 }
 
-// INSERT OR REPLACE INTO gitlab_repos
-//
-//	(name, repo_id, client_id, repo_web_url)
-//
-// VALUES (?, ?, ?, ?);
 func (q *Queries) UpsertClientRepo(ctx context.Context, arg UpsertClientRepoParams) error {
 	_, err := q.db.ExecContext(ctx, upsertClientRepo,
 		arg.Name,
