@@ -11,21 +11,23 @@ CREATE TABLE users
 );
 CREATE TABLE gitlab_clients
 (
-    id           INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name         TEXT    NOT NULL,
-    created_at   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by   INTEGER NOT NULL,
-    webhook_url  TEXT    NOT NULL,
-    gitlab_url   TEXT    NOT NULL,
+    id           INTEGER                                                   NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name         TEXT                                                      NOT NULL,
+    created_at   TEXT                                                      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TEXT                                                      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by   INTEGER                                                   NOT NULL,
+    webhook_url  TEXT                                                      NOT NULL,
+    gitlab_url   TEXT                                                      NOT NULL,
+    -- insecure: 0 is false, 1 is true
+--     insecure     INTEGER NOT NULL DEFAULT 0,
+    insecure     TEXT CHECK (gitlab_clients.insecure IN ('true', 'false')) NOT NULL DEFAULT 'false',
     -- Time in seconds
-    interval     INTEGER NOT NULL DEFAULT 86400,
-    access_token TEXT    NOT NULL
+    interval     INTEGER                                                   NOT NULL DEFAULT 86400,
+    access_token TEXT                                                      NOT NULL
 );
 CREATE TABLE gitlab_repos
 (
-    id           INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    repo_id      INTEGER NOT NULL,
+    repo_id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     repo_web_url TEXT    NOT NULL,
     -- tracked: 0 is false, 1 is true
     tracked      INTEGER NOT NULL DEFAULT 0,
