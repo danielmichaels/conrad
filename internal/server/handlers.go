@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/danielmichaels/conrad/internal/hooks"
+	"github.com/danielmichaels/conrad/internal/providers"
 	"github.com/danielmichaels/conrad/internal/render"
 	"github.com/danielmichaels/conrad/internal/repository"
 	"github.com/danielmichaels/conrad/internal/validator"
@@ -244,7 +244,7 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 		if form.Insecure == "on" {
 			insecure = true
 		}
-		glab, err := hooks.NewGitlab(form.ClientToken, form.GitLabURL, insecure)
+		glab, err := providers.NewGitlab(form.ClientToken, form.GitLabURL, insecure)
 		if err != nil {
 			app.Logger.Error().Err(err).Msg("gitlab_client_err")
 			app.serverError(w, r, err)
@@ -445,7 +445,7 @@ func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 		if form.Insecure == "true" {
 			insecure = true
 		}
-		glab, err := hooks.NewGitlab(form.ClientToken, form.GitLabURL, insecure)
+		glab, err := providers.NewGitlab(form.ClientToken, form.GitLabURL, insecure)
 		if err != nil {
 			app.Logger.Error().Err(err).Msg("gitlab_client_err")
 			app.serverError(w, r, err)

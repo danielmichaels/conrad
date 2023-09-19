@@ -109,10 +109,3 @@ func (app *Application) basicAuthenticationRequired(w http.ResponseWriter, r *ht
 		Status: message,
 	}, headers)
 }
-
-func (app *Application) errorHookEventNotFound(w http.ResponseWriter, r *http.Request) {
-	app.errorMessage(w, r, Error{
-		Code:   http.StatusBadRequest,
-		Status: "webhook event not found",
-	}, nil)
-}

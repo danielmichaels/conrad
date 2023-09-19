@@ -1,4 +1,4 @@
-package hooks
+package providers
 
 import (
 	"crypto/tls"
@@ -7,8 +7,7 @@ import (
 )
 
 type Gitlab struct {
-	Client   *gitlab.Client
-	insecure bool
+	Client *gitlab.Client
 }
 
 func NewGitlab(token string, url string, insecure bool) (*Gitlab, error) {
