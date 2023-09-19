@@ -17,11 +17,12 @@ tasks:
     silent: true
 
   init:
-    desc: run this when generated from cookiecutter
+    desc: Run this on first setup
     cmds:
-      - task: sqlc
       - task: modtidy
       - task: assets
+      - task: db:migration:up
+      - task: sqlc
   modtidy:
     desc: runs go mod tidy
     cmds:
