@@ -24,6 +24,7 @@ func (app *Application) errorMessage(w http.ResponseWriter, r *http.Request, e E
 }
 
 func (app *Application) serverError(w http.ResponseWriter, r *http.Request, err error) {
+	app.Logger.Error().Err(err).Stack().Send()
 	err = render.Page(w, http.StatusUnprocessableEntity, nil, "pages/500.tmpl")
 	if err != nil {
 		app.serverError(w, r, err)
@@ -32,18 +33,39 @@ func (app *Application) serverError(w http.ResponseWriter, r *http.Request, err 
 }
 
 func (app *Application) notFound(w http.ResponseWriter, r *http.Request) {
-	err := render.Page(w, http.StatusUnprocessableEntity, nil, "pages/404.tmpl")
-	if err != nil {
-		app.serverError(w, r, err)
+	accept := r.Header.Get("Accept")
+	switch accept {
+	case "application/json":
+		message := "not found"
+		app.errorMessage(w, r, Error{
+			Code:   http.StatusNotFound,
+			Status: message,
+		}, nil)
+	default:
+		err := render.Page(w, http.StatusUnprocessableEntity, nil, "pages/404.tmpl")
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
 	}
 }
 
 func (app *Application) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
-	message := fmt.Sprintf("The %s method is not supported for this resource", r.Method)
-	app.errorMessage(w, r, Error{
-		Code:   http.StatusMethodNotAllowed,
-		Status: message,
-	}, nil)
+	accept := r.Header.Get("Accept")
+	switch accept {
+	case "application/json":
+		message := fmt.Sprintf("The %s method is not supported for this resource", r.Method)
+		app.errorMessage(w, r, Error{
+			Code:   http.StatusMethodNotAllowed,
+			Status: message,
+		}, nil)
+	default:
+		err := render.Page(w, http.StatusMethodNotAllowed, nil, "pages/405.tmpl")
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+	}
 }
 
 func (app *Application) badRequest(w http.ResponseWriter, r *http.Request, err error) {
@@ -86,11 +108,4 @@ func (app *Application) basicAuthenticationRequired(w http.ResponseWriter, r *ht
 		Code:   http.StatusUnauthorized,
 		Status: message,
 	}, headers)
-}
-
-func (app *Application) errorHookEventNotFound(w http.ResponseWriter, r *http.Request) {
-	app.errorMessage(w, r, Error{
-		Code:   http.StatusBadRequest,
-		Status: "webhook event not found",
-	}, nil)
 }

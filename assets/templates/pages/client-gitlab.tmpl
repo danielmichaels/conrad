@@ -1,0 +1,70 @@
+{{define "page:title"}}{{.AppName}} Gitlab Details{{end}}
+
+{{define "page:main"}}
+    {{template "client-home-nav" .}}
+    <div class="container">
+      <hgroup>
+        <h2>GitLab Info</h2>
+        <p>
+          You can update your GitLab data here
+        </p>
+      </hgroup>
+      <form method="POST" action="{{.FormURL}}">
+        <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+
+          {{if .Form.Validator.HasErrors}}
+            <div class="error">Something was wrong. Please correct the errors
+              below and try again.
+            </div>
+          {{end}}
+        <div>
+          <label for="name-input">Name:
+              {{with .Form.Validator.FieldErrors.Name}}
+                <span class="error">{{.}}</span>
+              {{end}}
+            <input id="name-input" type="text" name="Name"
+                   placeholder="Enter a user friendly name" required
+                   value="{{.Form.Name}}"
+                   aria-invalid="{{if .Form.Validator.FieldErrors.Name}}true{{end}}">
+            <small>This name should be something memorable. It is for easier
+              recognition.</small>
+          </label>
+        </div>
+
+        <div class="grid">
+          <label for="gitlabURL">GitLab URL:
+              {{with .Form.Validator.FieldErrors.GitLabURL}}
+                <span class="error">{{.}}</span>
+              {{end}}
+            <input id="gitlabURL" type="text" name="GitLabURL" required
+                   value="{{if .Form.GitLabURL}}{{.Form.GitLabURL}}{{else}}https://gitlab.com{{end}}">
+            <small>Enter your custom GitLab server address if not using
+              Gitlab.com.</small>
+          </label>
+          <label for="ClientToken">GitLab Access Token:
+              {{with .Form.Validator.FieldErrors.ClientToken}}
+                <span class="error">{{.}}</span>
+              {{end}}
+            <input id="client-token" type="text"
+                   name="ClientToken" required placeholder="glpat-"
+                   value="{{.Form.ClientToken}}">
+            <small>We'll confirm this is working once you hit create.</small>
+          </label>
+        </div>
+
+        <fieldset>
+          <legend>Insecure Skip Verify:</legend>
+          <label>
+            <input type="checkbox" name="Insecure" role="switch"
+                    {{if eq .Form.Insecure "true" }}
+                      checked
+                    {{end}}
+            />
+          </label>
+          <small>Is your GitLab instance running HTTP, or using a self-signed
+            certificate? You made need to select this.</small>
+        </fieldset>
+        <button>Update</button>
+      </form>
+    </div>
+{{end}}

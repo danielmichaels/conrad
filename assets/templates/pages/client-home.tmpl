@@ -1,0 +1,59 @@
+{{define "page:title"}}{{.AppName}} Client Details{{end}}
+
+{{define "page:main"}}
+    {{$furl := .FormURL}}
+        {{template "client-home-nav" .}}
+    <div class="container">
+        {{if .Repos}}
+          <hgroup>
+            <h2>Tracked Repositories</h2>
+            <p>Use the switch toggle to track the projects your account has
+              access
+              to.</p>
+            <p>Remember to hit the Save button after making changes.</p>
+          </hgroup>
+          <form method="POST" action="{{$furl}}">
+            <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+            <table role="grid">
+              <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Project ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Tracked</th>
+              </tr>
+              </thead>
+              <tbody>
+              {{$gurl := .Clients.GitlabUrl}}
+              {{range $idx, $val := .Repos}}
+                <tr>
+                  <th scope="row">{{$idx | incr}}</th>
+                  <td>{{.RepoID}}</td>
+                  <td><a href="{{$val.RepoWebUrl}}">{{.Name}}</a></td>
+                  <td>
+                    <label for="RepoID">
+                      <input type="checkbox" role="switch"
+                             value="{{$val.RepoID}}"
+                             name="RepoID"
+                              {{if eq $val.Tracked 1}}
+                                checked
+                              {{end}}
+                      >
+                    </label>
+                </tr>
+              {{end}}
+              </tbody>
+            </table>
+            <input type="submit" value="Save">
+          </form>
+        {{else}}
+          <hgroup>
+            <h2>Tracked Repositories</h2>
+            <p>
+              No repositories found with the provided access token.
+            </p>
+            <p>Consider creating some repositories to your account.</p>
+          </hgroup>
+        {{end}}
+    </div>
+{{end}}

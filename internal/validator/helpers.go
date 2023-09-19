@@ -11,8 +11,6 @@ import (
 
 var (
 	RgxEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-	RgxLat   = regexp.MustCompile("^(\\+|-)?(?:90(?:(?:\\.0{1,6})?)|(?:[0-9]|[1-8][0-9])(?:(?:\\.[0-9]{1,6})?))$")
-	RgxLon   = regexp.MustCompile("^(\\+|-)?(?:180(?:(?:\\.0{1,6})?)|(?:[0-9]|[1-9][0-9]|1[0-7][0-9])(?:(?:\\.[0-9]{1,6})?))$")
 )
 
 func NotBlank(value string) bool {
@@ -87,11 +85,4 @@ func IsURL(value string) bool {
 	}
 
 	return u.Scheme != "" && u.Host != ""
-}
-
-func IsLat(value string) bool {
-	return RgxLat.MatchString(value)
-}
-func IsLon(value string) bool {
-	return RgxLon.MatchString(value)
 }

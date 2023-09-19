@@ -6,10 +6,11 @@ type Validator struct {
 }
 
 func (v Validator) HasErrors() bool {
+	// ignore IDE warning about non-pointer, it needs to be a non-pointer
 	return len(v.Errors) != 0 || len(v.FieldErrors) != 0
 }
 
-func (v Validator) AddError(message string) {
+func (v *Validator) AddError(message string) {
 	if v.Errors == nil {
 		v.Errors = []string{}
 	}
@@ -17,7 +18,7 @@ func (v Validator) AddError(message string) {
 	v.Errors = append(v.Errors, message)
 }
 
-func (v Validator) AddFieldError(key, message string) {
+func (v *Validator) AddFieldError(key, message string) {
 	if v.FieldErrors == nil {
 		v.FieldErrors = map[string]string{}
 	}
@@ -27,13 +28,13 @@ func (v Validator) AddFieldError(key, message string) {
 	}
 }
 
-func (v Validator) Check(ok bool, message string) {
+func (v *Validator) Check(ok bool, message string) {
 	if !ok {
 		v.AddError(message)
 	}
 }
 
-func (v Validator) CheckField(ok bool, key, message string) {
+func (v *Validator) CheckField(ok bool, key, message string) {
 	if !ok {
 		v.AddFieldError(key, message)
 	}

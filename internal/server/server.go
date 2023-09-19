@@ -7,12 +7,15 @@ import (
 	"github.com/danielmichaels/conrad/internal/config"
 	"github.com/danielmichaels/conrad/internal/repository"
 	"github.com/danielmichaels/conrad/internal/smtp"
+	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -25,6 +28,11 @@ type Application struct {
 	Mailer   *smtp.Mailer
 	Db       *repository.Queries
 	Sessions *sessions.CookieStore
+}
+
+// Ptr takes in non-pointer and returns a pointer
+func Ptr[T any](v T) *T {
+	return &v
 }
 
 func (app *Application) Serve() error {
@@ -91,4 +99,28 @@ func Matches(plaintextPassword, hashedPassword string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func formatURL(url string) string {
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		url = "https://" + url
+	}
+	return url
+}
+
+// isInsecure checks the value of a form.Insecure and returns a bool as a string
+func isInsecure(v string) string {
+	if v == "on" || v == "true" {
+		return "true"
+	}
+	return "false"
+}
+
+func urlIDParam(w http.ResponseWriter, r *http.Request) (int64, error) {
+	param := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(param, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return id, err
 }
