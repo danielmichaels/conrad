@@ -7,12 +7,14 @@ import (
 	"github.com/danielmichaels/conrad/internal/config"
 	"github.com/danielmichaels/conrad/internal/repository"
 	"github.com/danielmichaels/conrad/internal/smtp"
+	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -98,9 +100,27 @@ func Matches(plaintextPassword, hashedPassword string) (bool, error) {
 
 	return true, nil
 }
+
 func formatURL(url string) string {
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		url = "https://" + url
 	}
-	return fmt.Sprintf("%s", url)
+	return url
+}
+
+// isInsecure checks the value of a form.Insecure and returns a bool as a string
+func isInsecure(v string) string {
+	if v == "on" || v == "true" {
+		return "true"
+	}
+	return "false"
+}
+
+func urlIDParam(w http.ResponseWriter, r *http.Request) (int64, error) {
+	param := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(param, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return id, err
 }
