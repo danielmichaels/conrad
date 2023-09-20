@@ -3,6 +3,7 @@ package render
 import (
 	"bytes"
 	"fmt"
+	"golang.org/x/text/message"
 	"html/template"
 	"math"
 	"net/url"
@@ -13,7 +14,6 @@ import (
 
 	"golang.org/x/exp/slices"
 	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 )
 
 const (
@@ -34,6 +34,7 @@ var TemplateFuncs = template.FuncMap{
 	// String functions
 	"uppercase": strings.ToUpper,
 	"lowercase": strings.ToLower,
+	"title":     titleCase,
 	"pluralize": pluralize,
 	"slugify":   slugify,
 	"safeHTML":  safeHTML,
@@ -131,6 +132,35 @@ func slugify(s string) string {
 	}
 
 	return buf.String()
+}
+
+func titleCase(input string) string {
+	// Split the input string into words
+	words := strings.Fields(input)
+
+	// Create a slice to store the title cased words
+	var titleCasedWords []string
+
+	// Iterate through the words and capitalize the first letter of each word
+	for _, word := range words {
+		// Convert the word to lowercase
+		lowercaseWord := strings.ToLower(word)
+
+		// Capitalize the first letter of the word
+		firstLetter := strings.ToUpper(string(lowercaseWord[0]))
+		restOfWord := lowercaseWord[1:]
+
+		// Concatenate the first letter and the rest of the word
+		titleCasedWord := firstLetter + restOfWord
+
+		// Add the title cased word to the slice
+		titleCasedWords = append(titleCasedWords, titleCasedWord)
+	}
+
+	// Join the title cased words back into a single string
+	result := strings.Join(titleCasedWords, " ")
+
+	return result
 }
 
 func safeHTML(s string) template.HTML {
