@@ -12,7 +12,7 @@ func Page(w http.ResponseWriter, status int, data any, pagePath string) error {
 }
 
 func PageWithHeaders(w http.ResponseWriter, status int, data any, headers http.Header, pagePath string) error {
-	patterns := []string{"base.tmpl", "partials/*.tmpl", "forms/*.tmpl", "tables/*.tmpl", pagePath}
+	patterns := []string{"base.tmpl", "partials/*.tmpl", "forms/*.tmpl", "tables/*.tmpl", "auth/*.tmpl", pagePath}
 
 	return NamedTemplateWithHeaders(w, status, data, headers, "base", patterns...)
 }

@@ -28,7 +28,7 @@ func (app *Application) userSignup(w http.ResponseWriter, r *http.Request) {
 		data := app.newTemplateData(r)
 		data["Form"] = form
 
-		err := render.Page(w, http.StatusOK, data, "pages/signup.tmpl")
+		err := render.Page(w, http.StatusOK, data, "auth/signup.tmpl")
 		if err != nil {
 			app.serverError(w, r, err)
 		}
@@ -50,7 +50,7 @@ func (app *Application) userSignup(w http.ResponseWriter, r *http.Request) {
 			data := app.newTemplateData(r)
 			data["Form"] = form
 
-			err := render.Page(w, http.StatusUnprocessableEntity, data, "pages/signup.tmpl")
+			err := render.Page(w, http.StatusUnprocessableEntity, data, "auth/signup.tmpl")
 			if err != nil {
 				app.serverError(w, r, err)
 			}
@@ -101,7 +101,7 @@ func (app *Application) userLogin(w http.ResponseWriter, r *http.Request) {
 		data := app.newTemplateData(r)
 		data["Form"] = form
 
-		err := render.Page(w, http.StatusOK, data, "pages/login.tmpl")
+		err := render.Page(w, http.StatusOK, data, "auth/login.tmpl")
 		if err != nil {
 			app.serverError(w, r, err)
 		}
@@ -138,7 +138,7 @@ func (app *Application) userLogin(w http.ResponseWriter, r *http.Request) {
 			data := app.newTemplateData(r)
 			data["Form"] = form
 
-			err := render.Page(w, http.StatusUnprocessableEntity, data, "pages/login.tmpl")
+			err := render.Page(w, http.StatusUnprocessableEntity, data, "auth/login.tmpl")
 			if err != nil {
 				app.serverError(w, r, err)
 			}
