@@ -48,7 +48,7 @@ func (q *Queries) GetAllClientRepos(ctx context.Context, id int64) ([]GitlabRepo
 }
 
 const getAllClients = `-- name: GetAllClients :many
-SELECT gc.id, gc.name, gc.created_at, gc.updated_at, gc.created_by, gc.webhook_url, gc.gitlab_url, gc.insecure, gc.interval, gc.access_token, COUNT(gr.repo_id) AS repo_count
+SELECT gc.id, gc.name, gc.created_at, gc.updated_at, gc.created_by, gc.webhook_url, gc.gitlab_url, gc.insecure, gc.access_token, COUNT(gr.repo_id) AS repo_count
 FROM gitlab_clients gc
          LEFT JOIN gitlab_repos gr ON gc.id = gr.client_id
 GROUP BY gc.id
@@ -63,7 +63,6 @@ type GetAllClientsRow struct {
 	WebhookUrl  string `json:"webhook_url"`
 	GitlabUrl   string `json:"gitlab_url"`
 	Insecure    string `json:"insecure"`
-	Interval    int64  `json:"interval"`
 	AccessToken string `json:"access_token"`
 	RepoCount   int64  `json:"repo_count"`
 }
@@ -86,7 +85,6 @@ func (q *Queries) GetAllClients(ctx context.Context) ([]GetAllClientsRow, error)
 			&i.WebhookUrl,
 			&i.GitlabUrl,
 			&i.Insecure,
-			&i.Interval,
 			&i.AccessToken,
 			&i.RepoCount,
 		); err != nil {
@@ -104,7 +102,7 @@ func (q *Queries) GetAllClients(ctx context.Context) ([]GetAllClientsRow, error)
 }
 
 const getClientById = `-- name: GetClientById :one
-SELECT id, name, created_at, updated_at, created_by, webhook_url, gitlab_url, insecure, interval, access_token
+SELECT id, name, created_at, updated_at, created_by, webhook_url, gitlab_url, insecure, access_token
 FROM gitlab_clients
 WHERE id = ?
 `
@@ -121,7 +119,6 @@ func (q *Queries) GetClientById(ctx context.Context, id int64) (GitlabClients, e
 		&i.WebhookUrl,
 		&i.GitlabUrl,
 		&i.Insecure,
-		&i.Interval,
 		&i.AccessToken,
 	)
 	return i, err

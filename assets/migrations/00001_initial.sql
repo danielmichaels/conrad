@@ -19,10 +19,7 @@ CREATE TABLE gitlab_clients
     webhook_url  TEXT                                                      NOT NULL,
     gitlab_url   TEXT                                                      NOT NULL,
     -- insecure: 0 is false, 1 is true
---     insecure     INTEGER NOT NULL DEFAULT 0,
     insecure     TEXT CHECK (gitlab_clients.insecure IN ('true', 'false')) NOT NULL DEFAULT 'false',
-    -- Time in seconds
-    interval     INTEGER                                                   NOT NULL DEFAULT 86400,
     access_token TEXT                                                      NOT NULL
 );
 CREATE TABLE gitlab_repos
@@ -56,12 +53,22 @@ BEGIN
     SET updated_at = CURRENT_TIMESTAMP
     WHERE id = OLD.id;
 END;
+CREATE TRIGGER updated_at_gitlab_repos
+    AFTER UPDATE
+    ON gitlab_repos
+    FOR EACH ROW
+BEGIN
+    UPDATE gitlab_repos
+    SET updated_at = CURRENT_TIMESTAMP
+    WHERE repo_id = OLD.repo_id;
+END;
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 DROP TRIGGER IF EXISTS updated_at_users;
 DROP TRIGGER IF EXISTS updated_at_gitlab_clients;
+DROP TRIGGER IF EXISTS updated_at_gitlab_repos;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS gitlab_clients;
 DROP TABLE IF EXISTS gitlab_repos;

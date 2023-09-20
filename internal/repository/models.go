@@ -17,7 +17,6 @@ type GitlabClients struct {
 	WebhookUrl  string `json:"webhook_url"`
 	GitlabUrl   string `json:"gitlab_url"`
 	Insecure    string `json:"insecure"`
-	Interval    int64  `json:"interval"`
 	AccessToken string `json:"access_token"`
 }
 
@@ -29,6 +28,60 @@ type GitlabRepos struct {
 	CreatedAt  string `json:"created_at"`
 	UpdatedAt  string `json:"updated_at"`
 	ClientID   int64  `json:"client_id"`
+}
+
+type NotificationTimes struct {
+	ID             int64  `json:"id"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+	NotificationID int64  `json:"notification_id"`
+	ScheduledTime  string `json:"scheduled_time"`
+}
+
+type Notifications struct {
+	ID             int64          `json:"id"`
+	Enabled        int64          `json:"enabled"`
+	Name           string         `json:"name"`
+	CreatedAt      string         `json:"created_at"`
+	UpdatedAt      string         `json:"updated_at"`
+	ClientID       int64          `json:"client_id"`
+	IgnoreDrafts   int64          `json:"ignore_drafts"`
+	RemindAuthors  int64          `json:"remind_authors"`
+	IgnoreApproved int64          `json:"ignore_approved"`
+	MinAge         int64          `json:"min_age"`
+	MinStaleness   int64          `json:"min_staleness"`
+	IgnoreTerms    sql.NullString `json:"ignore_terms"`
+	IgnoreLabels   sql.NullString `json:"ignore_labels"`
+	RequireLabels  int64          `json:"require_labels"`
+	Monday         int64          `json:"monday"`
+	Tuesday        int64          `json:"tuesday"`
+	Wednesday      int64          `json:"wednesday"`
+	Thursday       int64          `json:"thursday"`
+	Friday         int64          `json:"friday"`
+	Saturday       int64          `json:"saturday"`
+	Sunday         int64          `json:"sunday"`
+}
+
+type NotificationsEmail struct {
+	ID           int64  `json:"id"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+	EmailAddress string `json:"email_address"`
+}
+
+type NotificationsMattermost struct {
+	ID                int64  `json:"id"`
+	CreatedAt         string `json:"created_at"`
+	UpdatedAt         string `json:"updated_at"`
+	MattermostChannel string `json:"mattermost_channel"`
+	WebhookUrl        string `json:"webhook_url"`
+}
+
+type NotificationsSlack struct {
+	ID           int64  `json:"id"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+	SlackChannel string `json:"slack_channel"`
 }
 
 type Users struct {
