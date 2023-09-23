@@ -27,7 +27,6 @@ func ServeCmd(ctx context.Context) *cobra.Command {
 			if err != nil {
 				logger.Fatal().Err(err).Msg("failed to open database")
 			}
-
 			defer dbc.Close()
 			db := repository.New(dbc)
 
@@ -54,6 +53,7 @@ func ServeCmd(ctx context.Context) *cobra.Command {
 				Logger:   logger,
 				Mailer:   mailer,
 				Db:       db,
+				Tx:       dbc,
 				Sessions: sessionStore,
 			}
 			err = app.Serve()

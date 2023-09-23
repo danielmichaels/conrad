@@ -22,14 +22,7 @@ CREATE TABLE notifications
     ignore_labels   TEXT,
     -- require_labels: only review if PR has one of the labels from this list
     require_labels  INTEGER NOT NULL DEFAULT 0,
-    -- Columns for days of the week
-    monday          INTEGER NOT NULL DEFAULT 0,
-    tuesday         INTEGER NOT NULL DEFAULT 0,
-    wednesday       INTEGER NOT NULL DEFAULT 0,
-    thursday        INTEGER NOT NULL DEFAULT 0,
-    friday          INTEGER NOT NULL DEFAULT 0,
-    saturday        INTEGER NOT NULL DEFAULT 0,
-    sunday          INTEGER NOT NULL DEFAULT 0,
+    days TEXT NOT NULL,
     FOREIGN KEY (client_id) REFERENCES gitlab_clients (id) ON DELETE CASCADE
 );
 CREATE TABLE notification_times
@@ -37,9 +30,21 @@ CREATE TABLE notification_times
     id              INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     created_at      TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    notification_id INTEGER NOT NULL,
-    scheduled_time  TEXT NOT NULL,
-    FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE
+    notification_id INTEGER NOT NULL UNIQUE,
+    scheduled_time  TEXT    NOT NULL,
+    timezone        TEXT    NOT NULL,
+    FOREIGN KEY (notification_id) REFERENCES notifications (id) ON DELETE CASCADE
+);
+CREATE TABLE notifications_mattermost
+(
+    id                 INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    created_at         TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    notification_id    INTEGER NOT NULL UNIQUE,
+    mattermost_channel TEXT    NOT NULL,
+    webhook_url        TEXT    NOT NULL,
+    -- Other Mattermost-specific columns
+    FOREIGN KEY (id) REFERENCES notifications (id) ON DELETE CASCADE
 );
 CREATE TABLE notifications_slack
 (
@@ -48,16 +53,6 @@ CREATE TABLE notifications_slack
     updated_at    TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     slack_channel TEXT    NOT NULL,
     -- Other Slack-specific columns
-    FOREIGN KEY (id) REFERENCES notifications (id) ON DELETE CASCADE
-);
-CREATE TABLE notifications_mattermost
-(
-    id                 INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    created_at         TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at         TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    mattermost_channel TEXT    NOT NULL,
-    webhook_url        TEXT    NOT NULL,
-    -- Other Mattermost-specific columns
     FOREIGN KEY (id) REFERENCES notifications (id) ON DELETE CASCADE
 );
 CREATE TABLE notifications_email

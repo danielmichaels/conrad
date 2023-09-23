@@ -48,7 +48,7 @@ func (q *Queries) GetAllClientRepos(ctx context.Context, id int64) ([]GitlabRepo
 }
 
 const getAllClients = `-- name: GetAllClients :many
-SELECT gc.id, gc.name, gc.created_at, gc.updated_at, gc.created_by, gc.webhook_url, gc.gitlab_url, gc.insecure, gc.access_token, COUNT(gr.repo_id) AS repo_count
+SELECT gc.id, gc.name, gc.created_at, gc.updated_at, gc.created_by, gc.gitlab_url, gc.insecure, gc.access_token, COUNT(gr.repo_id) AS repo_count
 FROM gitlab_clients gc
          LEFT JOIN gitlab_repos gr ON gc.id = gr.client_id
 GROUP BY gc.id
@@ -60,7 +60,6 @@ type GetAllClientsRow struct {
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
 	CreatedBy   int64  `json:"created_by"`
-	WebhookUrl  string `json:"webhook_url"`
 	GitlabUrl   string `json:"gitlab_url"`
 	Insecure    string `json:"insecure"`
 	AccessToken string `json:"access_token"`
@@ -82,7 +81,6 @@ func (q *Queries) GetAllClients(ctx context.Context) ([]GetAllClientsRow, error)
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CreatedBy,
-			&i.WebhookUrl,
 			&i.GitlabUrl,
 			&i.Insecure,
 			&i.AccessToken,
@@ -102,7 +100,7 @@ func (q *Queries) GetAllClients(ctx context.Context) ([]GetAllClientsRow, error)
 }
 
 const getClientById = `-- name: GetClientById :one
-SELECT id, name, created_at, updated_at, created_by, webhook_url, gitlab_url, insecure, access_token
+SELECT id, name, created_at, updated_at, created_by, gitlab_url, insecure, access_token
 FROM gitlab_clients
 WHERE id = ?
 `
@@ -116,7 +114,6 @@ func (q *Queries) GetClientById(ctx context.Context, id int64) (GitlabClients, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,
-		&i.WebhookUrl,
 		&i.GitlabUrl,
 		&i.Insecure,
 		&i.AccessToken,
@@ -149,8 +146,8 @@ func (q *Queries) InsertClientRepo(ctx context.Context, arg InsertClientRepoPara
 
 const insertNewClient = `-- name: InsertNewClient :one
 INSERT INTO gitlab_clients
-(name, created_by, access_token, webhook_url, gitlab_url, insecure)
-VALUES (?, ?, ?, ?, ?, ?)
+(name, created_by, access_token,  gitlab_url, insecure)
+VALUES (?, ?, ?, ?,  ?)
 RETURNING id
 `
 
@@ -158,7 +155,6 @@ type InsertNewClientParams struct {
 	Name        string `json:"name"`
 	CreatedBy   int64  `json:"created_by"`
 	AccessToken string `json:"access_token"`
-	WebhookUrl  string `json:"webhook_url"`
 	GitlabUrl   string `json:"gitlab_url"`
 	Insecure    string `json:"insecure"`
 }
@@ -168,7 +164,6 @@ func (q *Queries) InsertNewClient(ctx context.Context, arg InsertNewClientParams
 		arg.Name,
 		arg.CreatedBy,
 		arg.AccessToken,
-		arg.WebhookUrl,
 		arg.GitlabUrl,
 		arg.Insecure,
 	)

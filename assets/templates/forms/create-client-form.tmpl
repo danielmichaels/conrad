@@ -1,14 +1,17 @@
 {{define "create-clients-form"}}
   <div class="container">
     <article id="gitlab-client">
-      <h2>Create GitLab Client</h2>
-      <p>
-        Add a name for your client, webhook URL and GitLab access token.
-      </p>
-      <p>
-        You can update these details at any time. After this you will be asked to select
-        which repositories {{.AppName}} should monitor.
-      </p>
+      <hgroup>
+        <h2>Create GitLab Client</h2>
+        <p>
+          Add a name for your client, webhook URL and GitLab access token.
+        </p>
+        <p>
+          You can update these details at any time. After this you will be
+          asked to select
+          which repositories {{.AppName}} should monitor.
+        </p>
+      </hgroup>
       <form method="POST" action="{{.FormURL}}">
         <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
 
@@ -38,7 +41,8 @@
               {{end}}
             <input id="gitlabURL" type="text" name="GitLabURL" required
                    value="{{if .Form.GitLabURL}}{{.Form.GitLabURL}}{{else}}https://gitlab.com{{end}}">
-            <small>Enter your custom GitLab server address if not using Gitlab.com.</small>
+            <small>Enter your custom GitLab server address if not using
+              Gitlab.com.</small>
           </label>
           <label for="ClientToken">GitLab Access Token:
               {{with .Form.Validator.FieldErrors.ClientToken}}
@@ -49,15 +53,18 @@
                    value="{{.Form.ClientToken}}">
             <small>We'll confirm this is working once you hit create.</small>
           </label>
-          <label for="WebhookURL">Webhook URL:
-              {{with .Form.Validator.FieldErrors.WebhookURL}}
-                <span class="error">{{.}}</span>
-              {{end}}
-            <input id="webhook-url" type="text"
-                   name="WebhookURL" required placeholder="Mattermost webhook URL"
-                   value="{{.Form.WebhookURL}}">
-            <small>You'll need to create a <a href="https://developers.mattermost.com/integrate/webhooks/incoming/">Incoming Webhook</a> in your Mattermost instance.</small>
-          </label>
+{{/*          <label for="WebhookURL">Webhook URL:*/}}
+{{/*              {{with .Form.Validator.FieldErrors.WebhookURL}}*/}}
+{{/*                <span class="error">{{.}}</span>*/}}
+{{/*              {{end}}*/}}
+{{/*            <input id="webhook-url" type="text"*/}}
+{{/*                   name="WebhookURL" required*/}}
+{{/*                   placeholder="Mattermost webhook URL"*/}}
+{{/*                   value="{{.Form.WebhookURL}}">*/}}
+{{/*            <small>You'll need to create a <a*/}}
+{{/*                      href="https://developers.mattermost.com/integrate/webhooks/incoming/">Incoming*/}}
+{{/*                Webhook</a> in your Mattermost instance.</small>*/}}
+{{/*          </label>*/}}
         </div>
         <fieldset>
           <legend>Insecure Skip Verify:</legend>

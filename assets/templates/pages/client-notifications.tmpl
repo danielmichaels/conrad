@@ -1,6 +1,69 @@
 {{define "page:title"}}{{.AppName}} Gitlab Details{{end}}
 
 {{define "page:main"}}
+    {{$furl := .FormURL}}
     {{template "client-home-nav" .}}
-notifications page
+    <div class="container">
+      <hgroup>
+        <h3>Create new notification</h3>
+        <p>Click one of the options below</p>
+      </hgroup>
+      <a href="{{.FormURL}}/mattermost" role="button">Mattermost</a>
+        <div style="padding-bottom: 1rem;"></div>
+        {{if .Notifications}}
+          <hgroup>
+            <h2>Review Notifications</h2>
+            <p>All created notifications can be found here.</p>
+            <p>You can disable notifications by unchecking the enabled toggle. View the notification in detail by clicking on the action button.</p>
+          </hgroup>
+          <form method="POST" action="{{$furl}}">
+            <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+            <table role="grid">
+              <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Name</th>
+                <th scope="col">Channel</th>
+                <th scope="col">Enabled</th>
+                <th scope="col">Actions</th>
+              </tr>
+              </thead>
+              <tbody>
+              {{range $idx, $val := .Notifications}}
+                <tr>
+                  <th scope="row">{{$idx | incr}}</th>
+                  <td>{{.Name | title}}</td>
+                  <td>{{.MattermostChannel.String}}</td>
+                  <td>
+                    <label for="enabled">
+                      <input type="checkbox" role="switch"
+                             value="{{$val.ID}}"
+                             name="NotificationID"
+                              {{if eq $val.Enabled 1}}
+                                checked
+                              {{end}}
+                      >
+                    </label>
+                  <td>
+                    <div role="group">
+                      <a class="outline" role="button" href="{{$furl}}/{{.ID}}">View</a>
+                      <a class="outline secondary" role="button" href="#" @click="console.log('this will delete, are you sure?')">Delete</a>
+                    </div>
+                  </td>
+                </tr>
+              {{end}}
+              </tbody>
+            </table>
+            <button type="submit">Update</button>
+          </form>
+        {{else}}
+          <hgroup>
+            <h2>No Review Notifications Found</h2>
+            <p>
+              No notifications have been created for this account.
+            </p>
+          </hgroup>
+        {{end}}
+
+    </div>
 {{end}}

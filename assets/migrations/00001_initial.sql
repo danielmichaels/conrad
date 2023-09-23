@@ -16,7 +16,6 @@ CREATE TABLE gitlab_clients
     created_at   TEXT                                                      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   TEXT                                                      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by   INTEGER                                                   NOT NULL,
-    webhook_url  TEXT                                                      NOT NULL,
     gitlab_url   TEXT                                                      NOT NULL,
     -- insecure: 0 is false, 1 is true
     insecure     TEXT CHECK (gitlab_clients.insecure IN ('true', 'false')) NOT NULL DEFAULT 'false',

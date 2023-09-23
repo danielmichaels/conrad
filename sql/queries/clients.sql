@@ -1,7 +1,7 @@
 -- name: InsertNewClient :one
 INSERT INTO gitlab_clients
-(name, created_by, access_token, webhook_url, gitlab_url, insecure)
-VALUES (?, ?, ?, ?, ?, ?)
+(name, created_by, access_token,  gitlab_url, insecure)
+VALUES (?, ?, ?, ?,  ?)
 RETURNING id;
 
 -- name: UpdateExistingClient :one

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/danielmichaels/conrad/internal/config"
@@ -27,6 +28,7 @@ type Application struct {
 	wg       sync.WaitGroup
 	Mailer   *smtp.Mailer
 	Db       *repository.Queries
+	Tx       *sql.DB
 	Sessions *sessions.CookieStore
 }
 
@@ -108,16 +110,20 @@ func formatURL(url string) string {
 	return url
 }
 
-// isInsecure checks the value of a form.Insecure and returns a bool as a string
-func isInsecure(v string) string {
+// isOnCheckbox checks the value of a form.Insecure and returns a bool as a string
+func isOnCheckbox(v string) string {
 	if v == "on" || v == "true" {
 		return "true"
 	}
 	return "false"
 }
 
-func urlIDParam(w http.ResponseWriter, r *http.Request) (int64, error) {
-	param := chi.URLParam(r, "id")
+func urlIDParam(r *http.Request, optName *string) (int64, error) {
+	key := "id"
+	if optName != nil {
+		key = *optName
+	}
+	param := chi.URLParam(r, key)
 	id, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
 		return 0, err
