@@ -582,13 +582,6 @@ func (app *Application) mattermostNotification(w http.ResponseWriter, r *http.Re
 		IgnoreTerms   string   `form:"IgnoreTerms"`
 		IgnoreLabels  string   `form:"IgnoreLabels"`
 		RequireLabels int64    `form:"RequireLabels"`
-		Monday        string   `form:"Monday"`
-		Tuesday       string   `form:"Tuesday"`
-		Wednesday     string   `form:"Wednesday"`
-		Thursday      string   `form:"Thursday"`
-		Friday        string   `form:"Friday"`
-		Saturday      string   `form:"Saturday"`
-		Sunday        string   `form:"Sunday"`
 		Days          []string `form:"Days"`
 		// schedule
 		ScheduleTimes []string `form:"ScheduleTimes"`
@@ -608,10 +601,8 @@ func (app *Application) mattermostNotification(w http.ResponseWriter, r *http.Re
 	backURL := fmt.Sprintf("/dashboard/clients/%d/notifications", id)
 
 	data := app.newTemplateData(r)
-	//form.Days = []string{"Monday", "Tuesday", "Wednesday"}
 	data["Form"] = form
 	data["FormURL"] = pageURL
-	data["FormHours"] = scheduleTimes()
 	data["BackURL"] = backURL
 	switch r.Method {
 	case http.MethodGet:
@@ -627,13 +618,18 @@ func (app *Application) mattermostNotification(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		fmt.Println(form)
 		tx, err := app.Tx.Begin()
 		if err != nil {
 			app.serverError(w, r, err)
 			return
 		}
-		defer tx.Rollback()
+		defer func(tx *sql.Tx) {
+			err := tx.Rollback()
+			if err != nil {
+				app.Logger.Error().Err(err).Msg("defer_transaction_err")
+			}
+		}(tx)
+
 		qtx := app.Db.WithTx(tx)
 		notification, err := qtx.InsertNotification(ctx, repository.InsertNotificationParams{
 			Enabled:        1,
@@ -661,7 +657,7 @@ func (app *Application) mattermostNotification(w http.ResponseWriter, r *http.Re
 			app.serverError(w, r, err)
 			return
 		}
-		mattermost, err := qtx.UpsertNotificationMattermost(ctx, repository.UpsertNotificationMattermostParams{
+		_, err = qtx.UpsertNotificationMattermost(ctx, repository.UpsertNotificationMattermostParams{
 			NotificationID:    times,
 			MattermostChannel: form.Channel,
 			WebhookUrl:        form.WebhookURL,
@@ -669,32 +665,16 @@ func (app *Application) mattermostNotification(w http.ResponseWriter, r *http.Re
 		if err != nil {
 			return
 		}
-		//app.Db.
 		err = tx.Commit()
 		if err != nil {
 			app.serverError(w, r, err)
 			return
 		}
-		fmt.Println("SUCCESSFULLY INSERTED DATA", mattermost)
 		data := app.newTemplateData(r)
 		data["Form"] = form
 
 		http.Redirect(w, r, backURL, http.StatusSeeOther)
 	}
-}
-
-func scheduleTimes() []string {
-	hours := make([]string, 0, 48)
-	for i := 0; i < 24; i++ {
-		//hour := fmt.Sprintf("%02d:00 - %02d:30", i, i)
-		hour := fmt.Sprintf("%02d:00", i)
-		hours = append(hours, hour)
-
-		hour = fmt.Sprintf("%02d:30", (i+1)%24)
-		//hour = fmt.Sprintf("%02d:30 - %02d:00", i, (i+1)%24)
-		hours = append(hours, hour)
-	}
-	return hours
 }
 
 type notificationForm struct {
@@ -744,7 +724,6 @@ func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Reques
 		app.serverError(w, r, err)
 		return
 	}
-	fmt.Println("ID's", id, nid)
 	pageURL := fmt.Sprintf("/dashboard/clients/%d/notifications/%d", id, nid)
 	backURL := fmt.Sprintf("/dashboard/clients/%d/notifications", id)
 
@@ -760,7 +739,6 @@ func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Reques
 		data := app.newTemplateData(r)
 		data["Form"] = form
 		data["FormURL"] = pageURL
-		data["FormHours"] = scheduleTimes()
 		data["BackURL"] = backURL
 		err = render.Page(w, http.StatusOK, data, "pages/create-notifications.tmpl")
 		if err != nil {
@@ -773,16 +751,21 @@ func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Reques
 			app.badRequest(w, r, err)
 			return
 		}
-		fmt.Printf("postDecode %+v\n", form)
 
 		tx, err := app.Tx.Begin()
 		if err != nil {
 			app.serverError(w, r, err)
 			return
 		}
-		defer tx.Rollback()
-		qtx := app.Db.WithTx(tx)
-		notification, err := qtx.UpsertNotification(ctx, repository.UpsertNotificationParams{
+		defer func(tx *sql.Tx) {
+			err := tx.Rollback()
+			if err != nil {
+				app.Logger.Error().Err(err).Msg("defer_transaction_err")
+			}
+		}(tx)
+		//qtx := app.Db.WithTx(tx)
+		//notification, err := qtx.UpsertNotification(ctx, repository.UpsertNotificationParams{
+		notification, err := app.Db.UpsertNotification(ctx, repository.UpsertNotificationParams{
 			ID:             nid,
 			Enabled:        1,
 			Name:           form.Name,
@@ -803,25 +786,30 @@ func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Reques
 		}
 		notificationId := notification
 		fmt.Println("noID", notificationId)
-		times, err := qtx.UpsertNotificationTimes(ctx, repository.UpsertNotificationTimesParams{
+		//times, err := qtx.UpsertNotificationTimes(ctx, repository.UpsertNotificationTimesParams{
+		times, err := app.Db.UpsertNotificationTimes(ctx, repository.UpsertNotificationTimesParams{
 			NotificationID: notificationId,
 			ScheduledTime:  strings.Join(form.ScheduleTimes, ","),
 		})
 		if err != nil {
+			app.Logger.Error().Err(err).Send()
 			app.serverError(w, r, err)
 			return
 		}
 		fmt.Println("noTimesID", times)
-		_, err = qtx.UpsertNotificationMattermost(ctx, repository.UpsertNotificationMattermostParams{
+		//_, err = qtx.UpsertNotificationMattermost(ctx, repository.UpsertNotificationMattermostParams{
+		_, err = app.Db.UpsertNotificationMattermost(ctx, repository.UpsertNotificationMattermostParams{
 			NotificationID:    notificationId,
 			MattermostChannel: form.Channel,
 			WebhookUrl:        form.WebhookURL,
 		})
 		if err != nil {
+			app.serverError(w, r, err)
 			return
 		}
 		err = tx.Commit()
 		if err != nil {
+			app.Logger.Error().Err(err).Send()
 			app.serverError(w, r, err)
 			return
 		}

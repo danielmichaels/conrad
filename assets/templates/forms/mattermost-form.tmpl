@@ -31,6 +31,7 @@
           </label>
         </div>
         <div class="grid">
+          {{.Form}}
           <label for="channel">Mattermost Channel:
               {{with .Form.Validator.FieldErrors.Channel}}
                 <span class="error">{{.}}</span>
@@ -55,7 +56,6 @@
         </div>
         <div class="grid">
           <label for="day-picker">
-from.Days {{.Form.Days}}
               <select id="day-picker" multiple size="5" name="Days">
                 <option value="Monday" name="Days[]" {{range .Form.Days}}{{if eq . "Monday"}}selected{{end}}{{end}}>Monday</option>
                 <option value="Tuesday" name="Days[]" {{range .Form.Days}}{{if eq . "Tuesday"}}selected{{end}}{{end}}>Tuesday</option>
