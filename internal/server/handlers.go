@@ -99,9 +99,8 @@ func (app *Application) userSignup(w http.ResponseWriter, r *http.Request) {
 
 func (app *Application) userLogin(w http.ResponseWriter, r *http.Request) {
 	var form struct {
-		Email     string              `form:"Email"`
-		Password  string              `form:"Password"`
-		Validator validator.Validator `form:"-"`
+		Passphrase string              `form:"Passphrase"`
+		Validator  validator.Validator `form:"-"`
 	}
 	switch r.Method {
 	case http.MethodGet:
@@ -120,25 +119,22 @@ func (app *Application) userLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		user, err := app.Db.GetUserByEmail(context.Background(), form.Email)
+		user, err := app.Db.GetUserByID(context.Background(), 1)
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
 				app.serverError(w, r, err)
 				return
 			}
-			form.Validator.AddFieldError("Email", "Invalid credentials")
-			form.Validator.AddFieldError("Password", "Invalid credentials")
+			form.Validator.AddFieldError("Passphrase", "Invalid credentials")
 		}
-
-		form.Validator.CheckField(form.Email != "", "Email", "Email is required")
 		if user.ID != 0 {
-			passwordMatches, err := Matches(form.Password, user.HashedPassword)
+			passwordMatches, err := Matches(form.Passphrase, user.HashedPassword)
 			if err != nil {
 				app.serverError(w, r, err)
 				return
 			}
-			form.Validator.CheckField(form.Password != "", "Password", "Password is required")
-			form.Validator.CheckField(passwordMatches, "Password", "Invalid credentials")
+			form.Validator.CheckField(form.Passphrase != "", "Passphrase", "Password is required")
+			form.Validator.CheckField(passwordMatches, "Passphrase", "Invalid credentials")
 		}
 
 		if form.Validator.HasErrors() {

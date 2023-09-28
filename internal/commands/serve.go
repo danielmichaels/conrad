@@ -37,7 +37,28 @@ func ServeCmd(ctx context.Context) *cobra.Command {
 				cfg.Smtp.Password,
 				cfg.Smtp.Sender,
 			)
-
+			// Only one user, ever for the Conrad v1; pre-shared key
+			// todo: on passphrase update force change and remove any cookie
+			user, err := db.GetUserByID(ctx, 1)
+			if user.ID == 0 {
+				hashedPassword, err := server.Hash(cfg.Secrets.Passphrase)
+				if err != nil {
+					logger.Fatal().Err(err).Msg("hashing failed")
+					return err
+				}
+				_, err = db.InitialisePassphrase(ctx, repository.InitialisePassphraseParams{
+					ID:             1,
+					HashedPassword: hashedPassword,
+				})
+				if err != nil {
+					logger.Fatal().Err(err).Msg("initialising passphrase failed")
+					return err
+				}
+			}
+			if err != nil {
+				logger.Fatal().Err(err).Msg("GetUserByID failed")
+				return err
+			}
 			keyPairs := [][]byte{[]byte(cfg.Secrets.SessionSecretKey), nil}
 			sessionStore := sessions.NewCookieStore(keyPairs...)
 			sessionStore.Options = &sessions.Options{

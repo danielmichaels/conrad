@@ -5,39 +5,32 @@
         <a href="/"><strong>{{.AppName}}</strong></a>
       </li>
     </ul>
-    <ul x-data="{ themeDark: false }">
-      <li>
-        <a data-tooltip="Change theme" data-placement="bottom"
-           href="#" aria-label="change theme" @click="themeDark = !themeDark"
-           :data-theme-switcher="themeDark ? 'dark' : 'light'">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-               height="22" width="22"
-               viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-               class="outline">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/>
-          </svg>
-        </a>
-      </li>
-        {{if .AuthenticatedUser}}
-          <details class="dropdown">
-            <summary>{{.AuthenticatedUser.Email}}</summary>
-            <ul dir="rtl">
-              <li><a href="#">Settings</a></li>
-              <li>
-                <form method="POST" action="/logout">
-                  <input type='hidden' name='csrf_token'
-                         value='{{.CSRFToken}}'>
-                  <button>Logout</button>
-                </form>
-              </li>
-            </ul>
-          </details>
-        {{else}}
-          <li><a class="primary" href="/login">Login</a></li>
-          <li><a class="secondary" href="/signup">Signup</a></li>
-        {{end}}
-    </ul>
+       <ul x-data="{ themeDark: false }">
+    <li>
+      <a data-tooltip="Change theme" data-placement="bottom"
+         href="#" aria-label="change theme" @click="themeDark = !themeDark"
+         :data-theme-switcher="themeDark ? 'dark' : 'light'">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+             height="22" width="22"
+             viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+             class="outline">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/>
+        </svg>
+      </a>
+    </li>
+      {{if .AuthenticatedUser}}
+        <li><a class="primary"
+               hx-post="/logout"
+               hx-target="body"
+               hx-swap="outerHTML"
+               hx-push-url="true"
+               hx-confirm="Are you sure?"
+          >Logout</a></li>
+      {{else}}
+        <li><a class="primary" href="/login">Login</a></li>
+      {{end}}
+  </ul>
       {{with .Flash}}
         <div class='flash'>{{.}}</div>
       {{end}}
