@@ -17,86 +17,6 @@ import (
 	"strings"
 )
 
-func (app *Application) userSignup(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	var form struct {
-		Email     string              `form:"Email"`
-		Password  string              `form:"Password"`
-		Validator validator.Validator `form:"-"`
-	}
-	data := app.newTemplateData(r)
-	data["Form"] = form
-	switch r.Method {
-	case http.MethodGet:
-		err := render.Page(w, http.StatusOK, data, "auth/signup.tmpl")
-		if err != nil {
-			app.serverError(w, r, err)
-		}
-
-	case http.MethodPost:
-		err := render.DecodePostForm(r, &form)
-		if err != nil {
-			app.badRequest(w, r, err)
-			return
-		}
-
-		existingUser, err := app.Db.GetUserByEmail(ctx, form.Email)
-		if err != nil {
-			if !errors.Is(err, sql.ErrNoRows) {
-				app.serverError(w, r, err)
-				return
-			}
-		}
-		form.Validator.CheckField(existingUser.ID == 0, "Email", "Email is already in use")
-		form.Validator.CheckField(form.Email != "", "Email", "Email is required")
-		form.Validator.CheckField(validator.Matches(form.Email, validator.RgxEmail), "Email", "Must be a valid email address")
-		form.Validator.CheckField(form.Password != "", "Password", "Password is required")
-		form.Validator.CheckField(len(form.Password) >= 8, "Password", "Password is too short")
-		form.Validator.CheckField(len(form.Password) <= 72, "Password", "Password is too long")
-		if form.Validator.HasErrors() {
-			data := app.newTemplateData(r)
-			data["Form"] = form
-
-			err := render.Page(w, http.StatusUnprocessableEntity, data, "auth/signup.tmpl")
-			if err != nil {
-				app.serverError(w, r, err)
-			}
-			return
-		}
-
-		hashedPassword, err := Hash(form.Password)
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-
-		id, err := app.Db.InsertNewUser(ctx, repository.InsertNewUserParams{
-			Email:          form.Email,
-			HashedPassword: hashedPassword,
-		})
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-
-		session, err := app.Sessions.Get(r, "session")
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-
-		session.Values["userID"] = id
-
-		err = session.Save(r, w)
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-
-		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
-	}
-}
-
 func (app *Application) userLogin(w http.ResponseWriter, r *http.Request) {
 	var form struct {
 		Passphrase string              `form:"Passphrase"`
@@ -107,7 +27,7 @@ func (app *Application) userLogin(w http.ResponseWriter, r *http.Request) {
 		data := app.newTemplateData(r)
 		data["Form"] = form
 
-		err := render.Page(w, http.StatusOK, data, "auth/login.tmpl")
+		err := render.Page(w, http.StatusOK, data, "pages/login.tmpl")
 		if err != nil {
 			app.serverError(w, r, err)
 		}
@@ -141,7 +61,7 @@ func (app *Application) userLogin(w http.ResponseWriter, r *http.Request) {
 			data := app.newTemplateData(r)
 			data["Form"] = form
 
-			err := render.Page(w, http.StatusUnprocessableEntity, data, "auth/login.tmpl")
+			err := render.Page(w, http.StatusUnprocessableEntity, data, "pages/login.tmpl")
 			if err != nil {
 				app.serverError(w, r, err)
 			}

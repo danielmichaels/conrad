@@ -33,8 +33,6 @@ func (app *Application) routes() http.Handler {
 		web.Use(app.authenticate)
 		web.Use(app.requireAnonymousUser)
 		web.Get("/", app.home)
-		web.Get("/signup", app.userSignup)
-		web.Post("/signup", app.userSignup)
 		web.Get("/login", app.userLogin)
 		web.Post("/login", app.userLogin)
 	})
