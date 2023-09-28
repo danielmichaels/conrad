@@ -250,7 +250,12 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 		if form.Insecure == "on" {
 			insecure = true
 		}
-		glab, err := providers.NewGitlab(form.ClientToken, form.GitLabURL, insecure)
+		glab, err := providers.NewGitlab(
+			form.ClientToken,
+			form.GitLabURL,
+			insecure,
+			providers.GitlabClientDefaultTimeout,
+		)
 		if err != nil {
 			app.Logger.Error().Err(err).Msg("gitlab_client_err")
 			app.serverError(w, r, err)
@@ -449,7 +454,12 @@ func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 		form.Validator.CheckField(validator.IsURL(form.GitLabURL), "GitLabURL", "Value is not a valid URL")
 		form.GitLabURL = formatURL(form.GitLabURL)
 
-		glab, err := providers.NewGitlab(form.ClientToken, form.GitLabURL, convStrBoolToBool(form.Insecure))
+		glab, err := providers.NewGitlab(
+			form.ClientToken,
+			form.GitLabURL,
+			convStrBoolToBool(form.Insecure),
+			providers.GitlabClientDefaultTimeout,
+		)
 		if err != nil {
 			app.Logger.Error().Err(err).Msg("gitlab_client_err")
 			form.Validator.AddFieldError("ClientToken", "Unable to contact Gitlab")
@@ -753,7 +763,6 @@ func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Reques
 		}
 	case http.MethodDelete:
 		fmt.Println("DELETE")
-		//http.Redirect(w, r, fmt.Sprintf("/dashboard/notifications/%d", id), http.StatusSeeOther)
 		return
 	case http.MethodPost:
 		err := render.DecodePostForm(r, &form)

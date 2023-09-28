@@ -7,15 +7,17 @@ import (
 	"time"
 )
 
+const GitlabClientDefaultTimeout = 10 * time.Second
+
 type Gitlab struct {
 	Client *gitlab.Client
 }
 
-func NewGitlab(token string, url string, insecure bool) (*Gitlab, error) {
+func NewGitlab(token string, url string, insecure bool, timeout time.Duration) (*Gitlab, error) {
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure}}
 	hc := &http.Client{
 		Transport: tr,
-		Timeout:   10 * time.Second, // TODO: remove hard code
+		Timeout:   timeout,
 	}
 	cl, err := gitlab.NewClient(
 		token,
