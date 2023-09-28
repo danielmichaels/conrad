@@ -11,6 +11,7 @@
         <link rel="stylesheet" href="/static/css/custom.css?version={{.Version}}">
         <script src="/static/js/bundle.js?version={{.Version}}" defer></script>
         <script src="/static/js/theme-switcher.js?version={{.Version}}" defer></script>
+        <script src="/static/js/htmx.min.js?version={{.Version}}" defer></script>
     </head>
     <body>
         <header>
@@ -21,5 +22,10 @@
         </main>
         {{template "partial:footer" .}}
     </body>
+    <script !src="">
+        htmx.on("htmx:load", function(evt) {
+            myJavascriptLib.init(evt.detail.elt);
+        });
+    </script>
 </html>
 {{end}}

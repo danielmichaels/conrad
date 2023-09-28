@@ -57,6 +57,7 @@ func (app *Application) routes() http.Handler {
 			d.Post("/dashboard/clients/{id}/notifications/mattermost", app.mattermostNotification)
 			d.Get("/dashboard/clients/{id}/notifications/{nid}", app.notificationDetail)
 			d.Post("/dashboard/clients/{id}/notifications/{nid}", app.notificationDetail)
+			d.Delete("/dashboard/clients/{id}/notifications/{nid}", app.notificationDetail)
 		})
 	})
 	router.Group(func(api chi.Router) {

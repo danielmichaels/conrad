@@ -39,7 +39,10 @@ func (app *Application) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := app.Sessions.Get(r, "session")
 		if err != nil {
-			app.serverError(w, r, err)
+			// session has expired, or session fixation attack so expire the cookie
+			session.Options.MaxAge = -1
+			_ = session.Save(r, w)
+			next.ServeHTTP(w, r)
 			return
 		}
 
@@ -80,36 +83,6 @@ func (app *Application) requireAnonymousUser(next http.Handler) http.Handler {
 	})
 }
 
-func (app *Application) requireBasicAuthentication(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		username, plaintextPassword, ok := r.BasicAuth()
-		if !ok {
-			app.basicAuthenticationRequired(w, r)
-			return
-		}
-
-		//if app.config.basicAuth.username != username {
-		if "admin" != username {
-			app.basicAuthenticationRequired(w, r)
-			return
-		}
-
-		if "password" != plaintextPassword {
-			app.basicAuthenticationRequired(w, r)
-			return
-		}
-		//err := bcrypt.CompareHashAndPassword([]byte(app.config.basicAuth.hashedPassword), []byte(plaintextPassword))
-		//switch {
-		//case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):
-		//	app.basicAuthenticationRequired(w, r)
-		//	return
-		//case err != nil:
-		//	app.serverError(w, r, err)
-		//	return
-		//}
-		next.ServeHTTP(w, r)
-	})
-}
 func (app *Application) requireAuthenticatedUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authenticatedUser := contextGetAuthenticatedUser(r)

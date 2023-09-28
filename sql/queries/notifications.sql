@@ -11,7 +11,7 @@ FROM notifications n
      ON n.id = nt.notification_id
          LEFT JOIN
      notifications_mattermost mm
-     ON n.id = mm.id;
+     ON n.id = mm.notification_id;
 
 -- name: GetNotificationByID :one
 SELECT n.*,
@@ -26,7 +26,7 @@ FROM notifications n
      ON n.id = nt.notification_id
          LEFT JOIN
      notifications_mattermost mm
-     ON n.id = mm.id
+     ON n.id = mm.notification_id
 WHERE n.id = ?;
 
 -- name: InsertNotification :one
@@ -65,7 +65,21 @@ ON CONFLICT(id) DO UPDATE SET enabled         = excluded.enabled,
                               require_labels  = excluded.require_labels,
                               days            = excluded.days
 RETURNING id;
+-- name: UpdateNotificationTimes :one
+UPDATE notification_times
+SET
+    scheduled_time   = ?,
+    timezone         = ?
+WHERE notification_id = ?
+RETURNING id;
 
+-- name: UpdateNotificationMattermost :one
+UPDATE notifications_mattermost
+SET
+    mattermost_channel  = ?,
+    webhook_url         = ?
+WHERE notification_id = ?
+RETURNING id;
 -- name: UpsertNotificationTimes :one
 INSERT INTO notification_times (notification_id, scheduled_time, timezone)
 VALUES (?, ?, ?)

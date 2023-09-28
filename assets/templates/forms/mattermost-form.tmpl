@@ -11,7 +11,6 @@
       </div>
       <form method="POST" action="{{.FormURL}}">
         <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
-
           {{if .Form.Validator.HasErrors}}
             <div class="error">Something was wrong. Please correct the errors
               below and try again.
@@ -31,7 +30,6 @@
           </label>
         </div>
         <div class="grid">
-          {{.Form}}
           <label for="channel">Mattermost Channel:
               {{with .Form.Validator.FieldErrors.Channel}}
                 <span class="error">{{.}}</span>

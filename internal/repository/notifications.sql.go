@@ -23,7 +23,7 @@ FROM notifications n
      ON n.id = nt.notification_id
          LEFT JOIN
      notifications_mattermost mm
-     ON n.id = mm.id
+     ON n.id = mm.notification_id
 `
 
 type GetAllNotificationsRow struct {
@@ -106,7 +106,7 @@ FROM notifications n
      ON n.id = nt.notification_id
          LEFT JOIN
      notifications_mattermost mm
-     ON n.id = mm.id
+     ON n.id = mm.notification_id
 WHERE n.id = ?
 `
 
@@ -219,6 +219,50 @@ type UpdateEnabledNotificationStatusParams struct {
 func (q *Queries) UpdateEnabledNotificationStatus(ctx context.Context, arg UpdateEnabledNotificationStatusParams) error {
 	_, err := q.db.ExecContext(ctx, updateEnabledNotificationStatus, arg.Enabled, arg.ID)
 	return err
+}
+
+const updateNotificationMattermost = `-- name: UpdateNotificationMattermost :one
+UPDATE notifications_mattermost
+SET
+    mattermost_channel  = ?,
+    webhook_url         = ?
+WHERE notification_id = ?
+RETURNING id
+`
+
+type UpdateNotificationMattermostParams struct {
+	MattermostChannel string `json:"mattermost_channel"`
+	WebhookUrl        string `json:"webhook_url"`
+	NotificationID    int64  `json:"notification_id"`
+}
+
+func (q *Queries) UpdateNotificationMattermost(ctx context.Context, arg UpdateNotificationMattermostParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, updateNotificationMattermost, arg.MattermostChannel, arg.WebhookUrl, arg.NotificationID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const updateNotificationTimes = `-- name: UpdateNotificationTimes :one
+UPDATE notification_times
+SET
+    scheduled_time   = ?,
+    timezone         = ?
+WHERE notification_id = ?
+RETURNING id
+`
+
+type UpdateNotificationTimesParams struct {
+	ScheduledTime  string `json:"scheduled_time"`
+	Timezone       string `json:"timezone"`
+	NotificationID int64  `json:"notification_id"`
+}
+
+func (q *Queries) UpdateNotificationTimes(ctx context.Context, arg UpdateNotificationTimesParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, updateNotificationTimes, arg.ScheduledTime, arg.Timezone, arg.NotificationID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const upsertNotification = `-- name: UpsertNotification :one

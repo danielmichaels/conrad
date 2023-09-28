@@ -38,7 +38,7 @@ func ServeCmd(ctx context.Context) *cobra.Command {
 				cfg.Smtp.Sender,
 			)
 
-			keyPairs := [][]byte{[]byte("eda3fcy34wwevtz2vartsjm3h3qbqbqu"), nil}
+			keyPairs := [][]byte{[]byte(cfg.Secrets.SessionSecretKey), nil}
 			sessionStore := sessions.NewCookieStore(keyPairs...)
 			sessionStore.Options = &sessions.Options{
 				HttpOnly: true,

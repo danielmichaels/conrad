@@ -47,6 +47,7 @@ type smtpConf struct {
 
 type secrets struct {
 	GitlabWHVerifySecret string `env:"GITLAB_WEBHOOK_SECRET,required"`
+	SessionSecretKey     string `env:"SESSION_SECRET_KEY,required"`
 }
 
 // AppConfig Setup and install the applications' configuration environment variables
