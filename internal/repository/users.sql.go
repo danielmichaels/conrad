@@ -107,7 +107,6 @@ func (q *Queries) InitialisePassphrase(ctx context.Context, arg InitialisePassph
 }
 
 const insertNewUser = `-- name: InsertNewUser :one
-
 INSERT INTO users
     (name, email, hashed_password)
 VALUES (?, ?, ?)
@@ -120,10 +119,6 @@ type InsertNewUserParams struct {
 	HashedPassword string         `json:"hashed_password"`
 }
 
-// -- name: AuthenticateUser :one
-// SELECT id, hashed_password
-// FROM users
-// WHERE email = ?;
 func (q *Queries) InsertNewUser(ctx context.Context, arg InsertNewUserParams) (int64, error) {
 	row := q.db.QueryRowContext(ctx, insertNewUser, arg.Name, arg.Email, arg.HashedPassword)
 	var id int64

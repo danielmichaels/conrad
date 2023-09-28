@@ -34,7 +34,6 @@ INSERT INTO notifications
 (enabled, name, client_id, ignore_approved, ignore_drafts, remind_authors,
  min_age, min_staleness, ignore_terms, ignore_labels, require_labels, days)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT DO NOTHING
 RETURNING id;
 
 -- name: UpsertNotification :one

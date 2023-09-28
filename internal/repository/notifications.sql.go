@@ -166,7 +166,6 @@ INSERT INTO notifications
 (enabled, name, client_id, ignore_approved, ignore_drafts, remind_authors,
  min_age, min_staleness, ignore_terms, ignore_labels, require_labels, days)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT DO NOTHING
 RETURNING id
 `
 
@@ -185,6 +184,7 @@ type InsertNotificationParams struct {
 	Days           string         `json:"days"`
 }
 
+// ON CONFLICT DO NOTHING
 func (q *Queries) InsertNotification(ctx context.Context, arg InsertNotificationParams) (int64, error) {
 	row := q.db.QueryRowContext(ctx, insertNotification,
 		arg.Enabled,

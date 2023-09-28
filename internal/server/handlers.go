@@ -547,20 +547,7 @@ func (app *Application) mattermostNotification(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		tx, err := app.Tx.Begin()
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-		defer func(tx *sql.Tx) {
-			err := tx.Rollback()
-			if err != nil {
-				app.Logger.Error().Err(err).Msg("defer_transaction_err")
-			}
-		}(tx)
-
-		qtx := app.Db.WithTx(tx)
-		notification, err := qtx.InsertNotification(ctx, repository.InsertNotificationParams{
+		notification, err := app.Db.InsertNotification(ctx, repository.InsertNotificationParams{
 			Enabled:        1,
 			Name:           form.Name,
 			ClientID:       int64(id),
@@ -578,7 +565,7 @@ func (app *Application) mattermostNotification(w http.ResponseWriter, r *http.Re
 			app.serverError(w, r, err)
 			return
 		}
-		times, err := qtx.UpsertNotificationTimes(ctx, repository.UpsertNotificationTimesParams{
+		_, err = app.Db.UpsertNotificationTimes(ctx, repository.UpsertNotificationTimesParams{
 			NotificationID: notification,
 			ScheduledTime:  strings.Join(form.ScheduleTimes, ","),
 		})
@@ -586,21 +573,15 @@ func (app *Application) mattermostNotification(w http.ResponseWriter, r *http.Re
 			app.serverError(w, r, err)
 			return
 		}
-		_, err = qtx.UpsertNotificationMattermost(ctx, repository.UpsertNotificationMattermostParams{
-			NotificationID:    times,
+		_, err = app.Db.UpsertNotificationMattermost(ctx, repository.UpsertNotificationMattermostParams{
+			NotificationID:    notification,
 			MattermostChannel: form.Channel,
 			WebhookUrl:        form.WebhookURL,
 		})
 		if err != nil {
-			return
-		}
-		err = tx.Commit()
-		if err != nil {
 			app.serverError(w, r, err)
 			return
 		}
-		data := app.newTemplateData(r)
-		data["Form"] = form
 
 		http.Redirect(w, r, backURL, http.StatusSeeOther)
 	}
@@ -697,20 +678,7 @@ func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		tx, err := app.Tx.Begin()
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-		defer func(tx *sql.Tx) {
-			err := tx.Rollback()
-			if err != nil {
-				app.Logger.Error().Err(err).Msg("defer_transaction_err")
-			}
-		}(tx)
-		qtx := app.Db.WithTx(tx)
-		notification, err := qtx.UpsertNotification(ctx, repository.UpsertNotificationParams{
-			//notification, err := app.Db.UpsertNotification(ctx, repository.UpsertNotificationParams{
+		notification, err := app.Db.UpsertNotification(ctx, repository.UpsertNotificationParams{
 			ID:             nid,
 			Enabled:        1,
 			Name:           form.Name,
@@ -729,11 +697,8 @@ func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Reques
 			app.serverError(w, r, err)
 			return
 		}
-		notificationId := notification
-		fmt.Println("noID", notificationId)
-		times, err := qtx.UpsertNotificationTimes(ctx, repository.UpsertNotificationTimesParams{
-			//times, err := app.Db.UpdateNotificationTimes(ctx, repository.UpdateNotificationTimesParams{
-			NotificationID: notificationId,
+		_, err = app.Db.UpdateNotificationTimes(ctx, repository.UpdateNotificationTimesParams{
+			NotificationID: notification,
 			ScheduledTime:  strings.Join(form.ScheduleTimes, ","),
 		})
 		if err != nil {
@@ -741,10 +706,8 @@ func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Reques
 			app.serverError(w, r, err)
 			return
 		}
-		fmt.Println("noTimesID", times)
-		_, err = qtx.UpsertNotificationMattermost(ctx, repository.UpsertNotificationMattermostParams{
-			//_, err = app.Db.UpdateNotificationMattermost(ctx, repository.UpdateNotificationMattermostParams{
-			NotificationID:    notificationId,
+		_, err = app.Db.UpdateNotificationMattermost(ctx, repository.UpdateNotificationMattermostParams{
+			NotificationID:    notification,
 			MattermostChannel: form.Channel,
 			WebhookUrl:        form.WebhookURL,
 		})
@@ -752,14 +715,6 @@ func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Reques
 			app.serverError(w, r, err)
 			return
 		}
-		err = tx.Commit()
-		if err != nil {
-			app.Logger.Error().Err(err).Send()
-			app.serverError(w, r, err)
-			return
-		}
-		data := app.newTemplateData(r)
-		data["Form"] = form
 
 		http.Redirect(w, r, backURL, http.StatusSeeOther)
 	}
