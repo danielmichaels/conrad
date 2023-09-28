@@ -22,10 +22,5 @@
         </main>
         {{template "partial:footer" .}}
     </body>
-    <script !src="">
-        htmx.on("htmx:load", function(evt) {
-            myJavascriptLib.init(evt.detail.elt);
-        });
-    </script>
 </html>
 {{end}}
