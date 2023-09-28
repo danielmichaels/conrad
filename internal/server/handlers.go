@@ -390,10 +390,7 @@ func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func convStrBoolToBool(v string) bool {
-	if v == "true" {
-		return true
-	}
-	return false
+	return v == "true"
 }
 func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
