@@ -14,87 +14,13 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 )
-
-func (app *Application) userSignup(w http.ResponseWriter, r *http.Request) {
-	var form struct {
-		Email     string              `form:"Email"`
-		Password  string              `form:"Password"`
-		Validator validator.Validator `form:"-"`
-	}
-
-	switch r.Method {
-	case http.MethodGet:
-		data := app.newTemplateData(r)
-		data["Form"] = form
-
-		err := render.Page(w, http.StatusOK, data, "pages/signup.tmpl")
-		if err != nil {
-			app.serverError(w, r, err)
-		}
-
-	case http.MethodPost:
-		err := render.DecodePostForm(r, &form)
-		if err != nil {
-			app.badRequest(w, r, err)
-			return
-		}
-
-		form.Validator.CheckField(form.Email != "", "Email", "Email is required")
-		form.Validator.CheckField(validator.Matches(form.Email, validator.RgxEmail), "Email", "Must be a valid email address")
-		form.Validator.CheckField(form.Password != "", "Password", "Password is required")
-		form.Validator.CheckField(len(form.Password) >= 8, "Password", "Password is too short")
-		form.Validator.CheckField(len(form.Password) <= 72, "Password", "Password is too long")
-
-		if form.Validator.HasErrors() {
-			data := app.newTemplateData(r)
-			data["Form"] = form
-
-			err := render.Page(w, http.StatusUnprocessableEntity, data, "pages/signup.tmpl")
-			if err != nil {
-				app.serverError(w, r, err)
-			}
-			return
-		}
-
-		hashedPassword, err := Hash(form.Password)
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-
-		id, err := app.Db.InsertNewUser(context.Background(), repository.InsertNewUserParams{
-			Email:          form.Email,
-			HashedPassword: hashedPassword,
-		})
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-
-		session, err := app.Sessions.Get(r, "session")
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-
-		session.Values["userID"] = id
-
-		err = session.Save(r, w)
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-
-		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
-	}
-}
 
 func (app *Application) userLogin(w http.ResponseWriter, r *http.Request) {
 	var form struct {
-		Email     string              `form:"Email"`
-		Password  string              `form:"Password"`
-		Validator validator.Validator `form:"-"`
+		Passphrase string              `form:"Passphrase"`
+		Validator  validator.Validator `form:"-"`
 	}
 	switch r.Method {
 	case http.MethodGet:
@@ -113,25 +39,22 @@ func (app *Application) userLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		user, err := app.Db.GetUserByEmail(context.Background(), form.Email)
+		user, err := app.Db.GetUserByID(context.Background(), 1)
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
 				app.serverError(w, r, err)
 				return
 			}
-			form.Validator.AddFieldError("Email", "Invalid credentials")
-			form.Validator.AddFieldError("Password", "Invalid credentials")
+			form.Validator.AddFieldError("Passphrase", "Invalid credentials")
 		}
-
-		form.Validator.CheckField(form.Email != "", "Email", "Email is required")
 		if user.ID != 0 {
-			passwordMatches, err := Matches(form.Password, user.HashedPassword)
+			passwordMatches, err := Matches(form.Passphrase, user.HashedPassword)
 			if err != nil {
 				app.serverError(w, r, err)
 				return
 			}
-			form.Validator.CheckField(form.Password != "", "Password", "Password is required")
-			form.Validator.CheckField(passwordMatches, "Password", "Invalid credentials")
+			form.Validator.CheckField(form.Passphrase != "", "Passphrase", "Password is required")
+			form.Validator.CheckField(passwordMatches, "Passphrase", "Invalid credentials")
 		}
 
 		if form.Validator.HasErrors() {
@@ -214,7 +137,6 @@ func (app *Application) dashboard(w http.ResponseWriter, r *http.Request) {
 func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 	var form struct {
 		Name        string              `form:"Name"`
-		WebhookURL  string              `form:"WebhookURL"`
 		GitLabURL   string              `form:"GitLabURL"`
 		ClientToken string              `form:"ClientToken"`
 		Insecure    string              `form:"Insecure"`
@@ -244,7 +166,12 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 		if form.Insecure == "on" {
 			insecure = true
 		}
-		glab, err := providers.NewGitlab(form.ClientToken, form.GitLabURL, insecure)
+		glab, err := providers.NewGitlab(
+			form.ClientToken,
+			form.GitLabURL,
+			insecure,
+			providers.GitlabClientDefaultTimeout,
+		)
 		if err != nil {
 			app.Logger.Error().Err(err).Msg("gitlab_client_err")
 			app.serverError(w, r, err)
@@ -263,7 +190,6 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 		}
 
 		form.Validator.CheckField(form.Name != "", "Name", "Name is required")
-		form.Validator.CheckField(validator.IsURL(form.WebhookURL), "WebhookURL", "Value is not a valid URL")
 		form.Validator.CheckField(validator.IsURL(form.GitLabURL), "GitLabURL", "Value is not a valid URL")
 		if form.Validator.HasErrors() {
 			data := app.newTemplateData(r)
@@ -281,8 +207,7 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 			CreatedBy:   contextGetAuthenticatedUser(r).ID,
 			AccessToken: form.ClientToken,
 			GitlabUrl:   form.GitLabURL,
-			WebhookUrl:  form.WebhookURL,
-			Insecure:    isInsecure(form.Insecure),
+			Insecure:    isOnCheckbox(form.Insecure),
 		})
 		if err != nil {
 			app.Logger.Error().Err(err).Msg("new_client_insert_error")
@@ -302,35 +227,35 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 					"repo_id": p.ID,
 				}).Send()
 			}
+			app.Logger.Debug().Str("project", p.Name).Int("id", p.ID).Msg("insert-client-repo")
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("/dashboard/clients/%d", id), http.StatusSeeOther)
 	}
 }
 func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
 	var form struct {
 		RepoID    []int64             `form:"RepoID"`
 		Validator validator.Validator `form:"-"`
 	}
-	id, err := urlIDParam(w, r)
+	id, err := urlIDParam(r, nil)
 	if err != nil {
 		app.notFound(w, r)
 		return
 	}
-	client, err := app.Db.GetClientById(context.Background(), int64(id))
+	client, err := app.Db.GetClientById(ctx, id)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			app.Logger.Error().Err(err).Msg("client_by_id")
 			app.serverError(w, r, err)
 			return
 		}
 		app.notFound(w, r)
 		return
 	}
-	repos, err := app.Db.GetAllClientRepos(context.Background(), int64(id))
+	repos, err := app.Db.GetAllClientRepos(ctx, id)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			app.Logger.Error().Err(err).Msg("client_not_found")
 			app.serverError(w, r, err)
 			return
 		}
@@ -349,7 +274,13 @@ func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			app.serverError(w, r, err)
 		}
-
+	case http.MethodDelete:
+		err := app.Db.DeleteClientByID(ctx, id)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		http.Redirect(w, r, "/dashboard/clients", http.StatusOK)
 	case http.MethodPost:
 		err := render.DecodePostForm(r, &form)
 		if err != nil {
@@ -392,7 +323,7 @@ func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 		Validator   validator.Validator `form:"-"`
 	}
 
-	id, err := urlIDParam(w, r)
+	id, err := urlIDParam(r, nil)
 	if err != nil {
 		app.notFound(w, r)
 		return
@@ -410,7 +341,7 @@ func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 	}
 
 	form.ClientToken = client.AccessToken
-	form.Insecure = isInsecure(client.Insecure)
+	form.Insecure = isOnCheckbox(client.Insecure)
 	form.Name = client.Name
 	form.GitLabURL = client.GitlabUrl
 
@@ -422,11 +353,9 @@ func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		data := app.newTemplateData(r)
-
 		data["Form"] = form
 		data["Clients"] = client
 		data["FormURL"] = pageURL
-
 		err = render.Page(w, http.StatusOK, data, "pages/client-gitlab.tmpl")
 		if err != nil {
 			app.serverError(w, r, err)
@@ -439,39 +368,35 @@ func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 			app.badRequest(w, r, err)
 			return
 		}
+		form.Validator.CheckField(form.Name != "", "Name", "Name is required")
+		form.Validator.CheckField(validator.IsURL(form.GitLabURL), "GitLabURL", "Value is not a valid URL")
 		form.GitLabURL = formatURL(form.GitLabURL)
 
-		insecure := false
-		if form.Insecure == "true" {
-			insecure = true
-		}
-		glab, err := providers.NewGitlab(form.ClientToken, form.GitLabURL, insecure)
+		glab, err := providers.NewGitlab(
+			form.ClientToken,
+			form.GitLabURL,
+			convStrBoolToBool(form.Insecure),
+			providers.GitlabClientDefaultTimeout,
+		)
 		if err != nil {
 			app.Logger.Error().Err(err).Msg("gitlab_client_err")
-			app.serverError(w, r, err)
+			form.Validator.AddFieldError("ClientToken", "Unable to contact Gitlab")
 		}
 		projects, _, err := glab.Client.Projects.ListProjects(&gitlab.ListProjectsOptions{
 			Membership: Ptr(true),
 		})
 		if err != nil {
-			var ge *gitlab.ErrorResponse
-			if errors.As(err, &ge) {
-				form.Validator.AddFieldError("ClientToken", fmt.Sprintf("Invalid token: %q", ge.Response.Status))
-			}
-			app.Logger.Error().Err(err).
-				Interface("gitlab_error", Map{"message": ge.Message, "status": ge.Response.Status}).
-				Msg("gitlab-auth-failure")
+			form.Validator.AddFieldError("ClientToken", "Unable to contact Gitlab")
+			form.Validator.AddFieldError("GitLabURL", "Unable to contact Gitlab")
+			app.Logger.Error().Err(err).Msg("gitlab-auth-failure")
 		}
-
-		form.Validator.CheckField(form.Name != "", "Name", "Name is required")
-		form.Validator.CheckField(validator.IsURL(form.GitLabURL), "GitLabURL", "Value is not a valid URL")
 		if form.Validator.HasErrors() {
 			data := app.newTemplateData(r)
 			data["Form"] = form
 			data["Clients"] = client
 			data["FormURL"] = pageURL
-
-			err := render.Page(w, http.StatusUnprocessableEntity, data, "pages/create-clients.tmpl")
+			//err := render.Page(w, http.StatusUnprocessableEntity, data, "pages/client-gitlab.tmpl")
+			err := render.Page(w, http.StatusOK, data, "pages/client-gitlab.tmpl")
 			if err != nil {
 				app.serverError(w, r, err)
 			}
@@ -482,7 +407,7 @@ func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 			CreatedBy:   contextGetAuthenticatedUser(r).ID,
 			AccessToken: form.ClientToken,
 			GitlabUrl:   form.GitLabURL,
-			Insecure:    isInsecure(form.Insecure),
+			Insecure:    isOnCheckbox(form.Insecure),
 			ID:          id,
 		})
 		if err != nil {
@@ -510,18 +435,20 @@ func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/dashboard/clients/%d", id), http.StatusSeeOther)
 	}
 }
+
 func (app *Application) clientNotifications(w http.ResponseWriter, r *http.Request) {
 	var form struct {
-		Validator validator.Validator `form:"-"`
+		NotificationID []int64             `form:"NotificationID"`
+		Validator      validator.Validator `form:"-"`
 	}
+	ctx := context.Background()
 	param := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(param)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
-	pageURL := fmt.Sprintf("/dashboard/clients/%d/notifications", id)
-	client, err := app.Db.GetClientById(context.Background(), int64(id))
+	client, err := app.Db.GetClientById(ctx, int64(id))
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			app.Logger.Error().Err(err).Msg("client_by_id")
@@ -531,14 +458,19 @@ func (app *Application) clientNotifications(w http.ResponseWriter, r *http.Reque
 		app.notFound(w, r)
 		return
 	}
-
+	notifications, err := app.Db.GetAllNotifications(ctx)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	pageURL := fmt.Sprintf("/dashboard/clients/%d/notifications", id)
+	data := app.newTemplateData(r)
+	data["Form"] = form
+	data["FormURL"] = pageURL
+	data["Clients"] = client
+	data["Notifications"] = notifications
 	switch r.Method {
 	case http.MethodGet:
-		data := app.newTemplateData(r)
-		data["Form"] = form
-		data["Clients"] = client
-		data["FormURL"] = pageURL
-
 		err = render.Page(w, http.StatusOK, data, "pages/client-notifications.tmpl")
 		if err != nil {
 			app.serverError(w, r, err)
@@ -551,11 +483,223 @@ func (app *Application) clientNotifications(w http.ResponseWriter, r *http.Reque
 			app.badRequest(w, r, err)
 			return
 		}
-
+		found := make([]int64, 0, len(form.NotificationID))
+		found = append(found, form.NotificationID...)
+		for _, v := range notifications {
+			var enabled int64 = 0
+			if slices.Contains(found, v.ID) {
+				enabled = 1
+			}
+			err := app.Db.UpdateEnabledNotificationStatus(ctx, repository.UpdateEnabledNotificationStatusParams{
+				Enabled: enabled,
+				ID:      v.ID,
+			})
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+		}
 		data := app.newTemplateData(r)
 		data["Form"] = form
-		data["Clients"] = client
-		data["FormURL"] = pageURL
 		http.Redirect(w, r, pageURL, http.StatusSeeOther)
+	}
+}
+
+func (app *Application) mattermostNotification(w http.ResponseWriter, r *http.Request) {
+	var form struct {
+		Name          string   `form:"Name"`
+		Enabled       int64    `form:"Enabled"`
+		IgnoreDrafts  int64    `form:"IgnoreDrafts"`
+		RemindAuthors int64    `form:"RemindAuthors"`
+		MinAge        int64    `form:"MinAge"`
+		MinStaleness  int64    `form:"MinStaleness"`
+		IgnoreTerms   string   `form:"IgnoreTerms"`
+		IgnoreLabels  string   `form:"IgnoreLabels"`
+		RequireLabels int64    `form:"RequireLabels"`
+		Days          []string `form:"Days"`
+		// schedule
+		ScheduleTimes []string `form:"ScheduleTimes"`
+		// mattermost specific
+		WebhookURL string              `form:"WebhookURL"`
+		Channel    string              `form:"Channel"`
+		Validator  validator.Validator `form:"-"`
+	}
+	ctx := context.Background()
+	param := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(param)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	pageURL := fmt.Sprintf("/dashboard/clients/%d/notifications/mattermost", id)
+	backURL := fmt.Sprintf("/dashboard/clients/%d/notifications", id)
+
+	data := app.newTemplateData(r)
+	data["Form"] = form
+	data["FormURL"] = pageURL
+	data["BackURL"] = backURL
+	switch r.Method {
+	case http.MethodGet:
+		err = render.Page(w, http.StatusOK, data, "pages/create-notifications.tmpl")
+		if err != nil {
+			app.serverError(w, r, err)
+		}
+	case http.MethodPost:
+		err := render.DecodePostForm(r, &form)
+		if err != nil {
+			app.Logger.Error().Err(err).Send()
+			app.badRequest(w, r, err)
+			return
+		}
+
+		notification, err := app.Db.InsertNotification(ctx, repository.InsertNotificationParams{
+			Enabled:        1,
+			Name:           form.Name,
+			ClientID:       int64(id),
+			IgnoreApproved: 0,
+			IgnoreDrafts:   0,
+			RemindAuthors:  0,
+			MinAge:         0,
+			MinStaleness:   0,
+			IgnoreTerms:    sql.NullString{},
+			IgnoreLabels:   sql.NullString{},
+			RequireLabels:  0,
+			Days:           strings.Join(form.Days, ","),
+		})
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		_, err = app.Db.UpsertNotificationTimes(ctx, repository.UpsertNotificationTimesParams{
+			NotificationID: notification,
+			ScheduledTime:  strings.Join(form.ScheduleTimes, ","),
+		})
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		_, err = app.Db.UpsertNotificationMattermost(ctx, repository.UpsertNotificationMattermostParams{
+			NotificationID:    notification,
+			MattermostChannel: form.Channel,
+			WebhookUrl:        form.WebhookURL,
+		})
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		http.Redirect(w, r, backURL, http.StatusSeeOther)
+	}
+}
+
+func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	id, err := urlIDParam(r, nil)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	nid, err := urlIDParam(r, Ptr("nid"))
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	pageURL := fmt.Sprintf("/dashboard/clients/%d/notifications/%d", id, nid)
+	backURL := fmt.Sprintf("/dashboard/clients/%d/notifications", id)
+
+	var form notificationForm
+	notification, err := app.Db.GetNotificationByID(ctx, nid)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		form.fill(&notification)
+		data := app.newTemplateData(r)
+		data["Form"] = form
+		data["FormURL"] = pageURL
+		data["BackURL"] = backURL
+		err = render.Page(w, http.StatusOK, data, "pages/create-notifications.tmpl")
+		if err != nil {
+			app.serverError(w, r, err)
+		}
+	case http.MethodDelete:
+		err := app.Db.DeleteNotificationsByID(ctx, nid)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		err = app.Db.DeleteNotificationTimesByID(ctx, nid)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		err = app.Db.DeleteNotificationsMattermostByID(ctx, nid)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		http.Redirect(w, r, backURL, http.StatusOK)
+	case http.MethodPost:
+		err := render.DecodePostForm(r, &form)
+		if err != nil {
+			app.Logger.Error().Err(err).Msg("post_decode_error")
+			app.badRequest(w, r, err)
+			return
+		}
+		form.Validator.CheckField(form.Name != "", "Name", "Name is required")
+		form.Validator.CheckField(form.Channel != "", "Channel", "Channel is required")
+		form.Validator.CheckField(validator.IsURL(form.WebhookURL), "WebhookURL", "Value is not a valid URL")
+		if form.Validator.HasErrors() {
+			data := app.newTemplateData(r)
+			data["Form"] = form
+			err := render.Page(w, http.StatusUnprocessableEntity, data, "pages/create-notifications.tmpl")
+			if err != nil {
+				app.serverError(w, r, err)
+			}
+			return
+		}
+
+		notification, err := app.Db.UpsertNotification(ctx, repository.UpsertNotificationParams{
+			ID:             nid,
+			Enabled:        1,
+			Name:           form.Name,
+			ClientID:       id,
+			IgnoreApproved: 0,
+			IgnoreDrafts:   0,
+			RemindAuthors:  0,
+			MinAge:         0,
+			MinStaleness:   0,
+			IgnoreTerms:    sql.NullString{},
+			IgnoreLabels:   sql.NullString{},
+			RequireLabels:  0,
+			Days:           strings.Join(form.Days, ","),
+		})
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		_, err = app.Db.UpdateNotificationTimes(ctx, repository.UpdateNotificationTimesParams{
+			NotificationID: notification,
+			ScheduledTime:  strings.Join(form.ScheduleTimes, ","),
+		})
+		if err != nil {
+			app.Logger.Error().Err(err).Send()
+			app.serverError(w, r, err)
+			return
+		}
+		_, err = app.Db.UpdateNotificationMattermost(ctx, repository.UpdateNotificationMattermostParams{
+			NotificationID:    notification,
+			MattermostChannel: form.Channel,
+			WebhookUrl:        form.WebhookURL,
+		})
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		http.Redirect(w, r, backURL, http.StatusSeeOther)
 	}
 }

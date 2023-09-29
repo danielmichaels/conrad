@@ -4,36 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/danielmichaels/conrad/internal/config"
-	"github.com/danielmichaels/conrad/internal/repository"
-	"github.com/danielmichaels/conrad/internal/smtp"
-	"github.com/go-chi/chi/v5"
-	"github.com/gorilla/sessions"
-	"github.com/rs/zerolog"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
-	"sync"
 	"syscall"
 	"time"
 )
-
-type Application struct {
-	Config   *config.Conf
-	Logger   zerolog.Logger
-	wg       sync.WaitGroup
-	Mailer   *smtp.Mailer
-	Db       *repository.Queries
-	Sessions *sessions.CookieStore
-}
-
-// Ptr takes in non-pointer and returns a pointer
-func Ptr[T any](v T) *T {
-	return &v
-}
 
 func (app *Application) Serve() error {
 	srv := &http.Server{
@@ -76,51 +52,4 @@ func (app *Application) Serve() error {
 		return err
 	}
 	return nil
-}
-
-func Hash(plaintextPassword string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(plaintextPassword), 12)
-	if err != nil {
-		return "", err
-	}
-
-	return string(hashedPassword), nil
-}
-
-func Matches(plaintextPassword, hashedPassword string) (bool, error) {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plaintextPassword))
-	if err != nil {
-		switch {
-		case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):
-			return false, nil
-		default:
-			return false, err
-		}
-	}
-
-	return true, nil
-}
-
-func formatURL(url string) string {
-	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-		url = "https://" + url
-	}
-	return url
-}
-
-// isInsecure checks the value of a form.Insecure and returns a bool as a string
-func isInsecure(v string) string {
-	if v == "on" || v == "true" {
-		return "true"
-	}
-	return "false"
-}
-
-func urlIDParam(w http.ResponseWriter, r *http.Request) (int64, error) {
-	param := chi.URLParam(r, "id")
-	id, err := strconv.ParseInt(param, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return id, err
 }

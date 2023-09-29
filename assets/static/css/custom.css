@@ -34,3 +34,7 @@ header hgroup {
 [x-cloak] {
     display: none;
 }
+tr.htmx-swapping td {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}

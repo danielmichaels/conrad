@@ -1,0 +1,73 @@
+{{define "mattermost-form"}}
+  <div class="container">
+    <article id="mattermost-form">
+      <div class="container">
+        <hgroup>
+          <h2>Mattermost</h2>
+          <p>Create new notification for reminders.</p>
+          <p>Optional fields will be marked and the default settings stated
+            with them.</p>
+        </hgroup>
+      </div>
+      <form method="POST" action="{{.FormURL}}">
+        <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+          {{if .Form.Validator.HasErrors}}
+            <div class="error">Something was wrong. Please correct the errors
+              below and try again.
+            </div>
+          {{end}}
+        <div>
+          <label for="name-input">Name:
+              {{with .Form.Validator.FieldErrors.Name}}
+                <span class="error">{{.}}</span>
+              {{end}}
+            <input id="name-input" type="text" name="Name"
+                   placeholder="Enter a user friendly name" required
+                   value="{{.Form.Name}}"
+                   aria-invalid="{{if .Form.Validator.FieldErrors.Name}}true{{end}}">
+            <small>This name should be something memorable. It is for easier
+              recognition.</small>
+          </label>
+        </div>
+        <div class="grid">
+          <label for="channel">Mattermost Channel:
+              {{with .Form.Validator.FieldErrors.Channel}}
+                <span class="error">{{.}}</span>
+              {{end}}
+            <input id="channel" type="text"
+                   name="Channel" required placeholder="town-square"
+                   value="{{.Form.Channel}}">
+            <small>The mattermost channel to publish to.</small>
+          </label>
+          <label for="WebhookURL">Webhook URL:
+              {{with .Form.Validator.FieldErrors.WebhookURL}}
+                <span class="error">{{.}}</span>
+              {{end}}
+            <input id="webhook-url" type="text"
+                   name="WebhookURL" required
+                   placeholder="Mattermost webhook URL"
+                   value="{{.Form.WebhookURL}}">
+            <small>You'll need to create an <a
+                      href="https://developers.mattermost.com/integrate/webhooks/incoming/">Incoming
+                Webhook</a> in your Mattermost instance.</small>
+          </label>
+        </div>
+        <div class="grid">
+          <label for="day-picker">Days to execute reminders:
+              <select id="day-picker" multiple size="5" name="Days">
+                <option value="Monday" name="Days[]" {{range .Form.Days}}{{if eq . "Monday"}}selected{{end}}{{end}}>Monday</option>
+                <option value="Tuesday" name="Days[]" {{range .Form.Days}}{{if eq . "Tuesday"}}selected{{end}}{{end}}>Tuesday</option>
+                <option value="Wednesday" name="Days[]" {{range .Form.Days}}{{if eq . "Wednesday"}}selected{{end}}{{end}}>Wednesday</option>
+                <option value="Thursday" name="Days[]" {{range .Form.Days}}{{if eq . "Thursday"}}selected{{end}}{{end}}>Thursday</option>
+                <option value="Friday" name="Days[]" {{range .Form.Days}}{{if eq . "Friday"}}selected{{end}}{{end}}>Friday</option>
+                <option value="Saturday" name="Days[]" {{range .Form.Days}}{{if eq . "Saturday"}}selected{{end}}{{end}}>Saturday</option>
+                <option value="Sunday" name="Days[]" {{range .Form.Days}}{{if eq . "Sunday"}}selected{{end}}{{end}}>Sunday</option>
+              </select>
+            <small>Select one or multiple days for the reminders to execute.</small>
+          </label>
+        </div>
+        <button>Submit</button>
+      </form>
+    </article>
+  </div>
+{{end}}

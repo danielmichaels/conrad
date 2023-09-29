@@ -1,15 +1,19 @@
 # conrad
 
-> 
+> GitLab merge review reminder service for busy teams
 
 ## Server setup
 
 To run the server:
 
 ```shell
-air
-# OR
-# task dev
+task dev
+```
+
+**First time setup**
+
+```shell
+task init
 ```
 
 ## Requirements
@@ -27,5 +31,5 @@ The rest will be installed during `go mod tidy`.
 
 The CSS and JS requires some manual building occasionally.
 
-A `Makefile` helper exists to do both of the following in a single command.
+A `Taskfile` helper exists to do both of the following in a single command.
 `task assets` will regenerate new bundles.

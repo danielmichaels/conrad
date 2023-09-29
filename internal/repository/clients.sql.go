@@ -9,6 +9,16 @@ import (
 	"context"
 )
 
+const deleteClientByID = `-- name: DeleteClientByID :exec
+DELETE FROM gitlab_clients
+WHERE id = ?
+`
+
+func (q *Queries) DeleteClientByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteClientByID, id)
+	return err
+}
+
 const getAllClientRepos = `-- name: GetAllClientRepos :many
 SELECT gr.repo_id, gr.repo_web_url, gr.tracked, gr.name, gr.created_at, gr.updated_at, gr.client_id
 FROM gitlab_repos gr
@@ -48,7 +58,7 @@ func (q *Queries) GetAllClientRepos(ctx context.Context, id int64) ([]GitlabRepo
 }
 
 const getAllClients = `-- name: GetAllClients :many
-SELECT gc.id, gc.name, gc.created_at, gc.updated_at, gc.created_by, gc.webhook_url, gc.gitlab_url, gc.insecure, gc.interval, gc.access_token, COUNT(gr.repo_id) AS repo_count
+SELECT gc.id, gc.name, gc.created_at, gc.updated_at, gc.created_by, gc.gitlab_url, gc.insecure, gc.access_token, COUNT(gr.repo_id) AS repo_count
 FROM gitlab_clients gc
          LEFT JOIN gitlab_repos gr ON gc.id = gr.client_id
 GROUP BY gc.id
@@ -60,10 +70,8 @@ type GetAllClientsRow struct {
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
 	CreatedBy   int64  `json:"created_by"`
-	WebhookUrl  string `json:"webhook_url"`
 	GitlabUrl   string `json:"gitlab_url"`
 	Insecure    string `json:"insecure"`
-	Interval    int64  `json:"interval"`
 	AccessToken string `json:"access_token"`
 	RepoCount   int64  `json:"repo_count"`
 }
@@ -83,10 +91,8 @@ func (q *Queries) GetAllClients(ctx context.Context) ([]GetAllClientsRow, error)
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CreatedBy,
-			&i.WebhookUrl,
 			&i.GitlabUrl,
 			&i.Insecure,
-			&i.Interval,
 			&i.AccessToken,
 			&i.RepoCount,
 		); err != nil {
@@ -104,7 +110,7 @@ func (q *Queries) GetAllClients(ctx context.Context) ([]GetAllClientsRow, error)
 }
 
 const getClientById = `-- name: GetClientById :one
-SELECT id, name, created_at, updated_at, created_by, webhook_url, gitlab_url, insecure, interval, access_token
+SELECT id, name, created_at, updated_at, created_by, gitlab_url, insecure, access_token
 FROM gitlab_clients
 WHERE id = ?
 `
@@ -118,10 +124,8 @@ func (q *Queries) GetClientById(ctx context.Context, id int64) (GitlabClients, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,
-		&i.WebhookUrl,
 		&i.GitlabUrl,
 		&i.Insecure,
-		&i.Interval,
 		&i.AccessToken,
 	)
 	return i, err
@@ -152,8 +156,8 @@ func (q *Queries) InsertClientRepo(ctx context.Context, arg InsertClientRepoPara
 
 const insertNewClient = `-- name: InsertNewClient :one
 INSERT INTO gitlab_clients
-(name, created_by, access_token, webhook_url, gitlab_url, insecure)
-VALUES (?, ?, ?, ?, ?, ?)
+(name, created_by, access_token,  gitlab_url, insecure)
+VALUES (?, ?, ?, ?,  ?)
 RETURNING id
 `
 
@@ -161,7 +165,6 @@ type InsertNewClientParams struct {
 	Name        string `json:"name"`
 	CreatedBy   int64  `json:"created_by"`
 	AccessToken string `json:"access_token"`
-	WebhookUrl  string `json:"webhook_url"`
 	GitlabUrl   string `json:"gitlab_url"`
 	Insecure    string `json:"insecure"`
 }
@@ -171,7 +174,6 @@ func (q *Queries) InsertNewClient(ctx context.Context, arg InsertNewClientParams
 		arg.Name,
 		arg.CreatedBy,
 		arg.AccessToken,
-		arg.WebhookUrl,
 		arg.GitlabUrl,
 		arg.Insecure,
 	)
@@ -234,10 +236,9 @@ const upsertClientRepo = `-- name: UpsertClientRepo :exec
 INSERT INTO gitlab_repos
     (name, repo_id, client_id, repo_web_url)
 VALUES (?, ?, ?, ?)
-ON CONFLICT(repo_id) DO UPDATE SET
-    name = excluded.name,
-    client_id = excluded.client_id,
-    repo_web_url = excluded.repo_web_url
+ON CONFLICT(repo_id) DO UPDATE SET name         = excluded.name,
+                                   client_id    = excluded.client_id,
+                                   repo_web_url = excluded.repo_web_url
 `
 
 type UpsertClientRepoParams struct {
@@ -247,11 +248,6 @@ type UpsertClientRepoParams struct {
 	RepoWebUrl string `json:"repo_web_url"`
 }
 
-// INSERT OR REPLACE INTO gitlab_repos
-//
-//	(name, repo_id, client_id, repo_web_url)
-//
-// VALUES (?, ?, ?, ?);
 func (q *Queries) UpsertClientRepo(ctx context.Context, arg UpsertClientRepoParams) error {
 	_, err := q.db.ExecContext(ctx, upsertClientRepo,
 		arg.Name,

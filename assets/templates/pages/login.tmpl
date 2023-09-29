@@ -5,32 +5,17 @@
     <h2>Login</h2>
     <form method="POST" action="/login">
       <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
-
-        {{if .Form.Validator.HasErrors}}
-          <div class="error">Something was wrong. Please correct the errors
-            below and try again.
-          </div>
-        {{end}}
       <div>
-        <label for="email">Email:
-          {{with .Form.Validator.FieldErrors.Email}}
+        <label for="passphrase">Passphrase:
+          {{with .Form.Validator.FieldErrors.Passphrase}}
             <span class="error">{{.}}</span>
           {{end}}
-        <input id="email" type="email" name="Email" value="{{.Form.Email}}" required
-               aria-invalid="{{if .Form.Validator.FieldErrors.Password}}true{{end}}">
-        </label>
-      </div>
-      <div>
-        <label for="password">Password:
-          {{with .Form.Validator.FieldErrors.Password}}
-            <span class="error">{{.}}</span>
-          {{end}}
-        <input id="password" type="password" name="Password" required aria-invalid="{{if .Form.Validator.FieldErrors.Password}}true{{end}}">
+        <input id="passphrase" type="password" name="Passphrase" required
+               aria-invalid="{{if .Form.Validator.FieldErrors.PassphraseError}}true{{end}}">
+          <small>The passphrase is a pre-shared key. If you don't know it, talk to the administrator or create your own Conrad instance.</small>
           </label>
       </div>
       <button>Login</button>
     </form>
-    <p><a href="/signup">Need to register?</a></p>
-    <p><a href="/forgotten-password">Forgotten password?</a></p>
   </div>
 {{end}}

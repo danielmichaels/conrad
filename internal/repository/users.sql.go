@@ -13,7 +13,7 @@ import (
 const authenticateUser = `-- name: AuthenticateUser :one
 SELECT id, hashed_password
 FROM users
-WHERE email = ?
+WHERE id = 1
 `
 
 type AuthenticateUserRow struct {
@@ -21,8 +21,9 @@ type AuthenticateUserRow struct {
 	HashedPassword string `json:"hashed_password"`
 }
 
-func (q *Queries) AuthenticateUser(ctx context.Context, email string) (AuthenticateUserRow, error) {
-	row := q.db.QueryRowContext(ctx, authenticateUser, email)
+// it's always 1 because we only have a single user in Conrad v1
+func (q *Queries) AuthenticateUser(ctx context.Context) (AuthenticateUserRow, error) {
+	row := q.db.QueryRowContext(ctx, authenticateUser)
 	var i AuthenticateUserRow
 	err := row.Scan(&i.ID, &i.HashedPassword)
 	return i, err
@@ -36,6 +37,24 @@ WHERE email = ?
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (Users, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i Users
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.HashedPassword,
+		&i.Name,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, created_at, updated_at, email, hashed_password, name FROM users WHERE id = ?
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (Users, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i Users
 	err := row.Scan(
 		&i.ID,
@@ -66,6 +85,25 @@ func (q *Queries) GetUserById(ctx context.Context, id int64) (Users, error) {
 		&i.Name,
 	)
 	return i, err
+}
+
+const initialisePassphrase = `-- name: InitialisePassphrase :one
+INSERT OR REPLACE INTO users
+    (id, hashed_password)
+VALUES (?, ?)
+RETURNING id
+`
+
+type InitialisePassphraseParams struct {
+	ID             int64  `json:"id"`
+	HashedPassword string `json:"hashed_password"`
+}
+
+func (q *Queries) InitialisePassphrase(ctx context.Context, arg InitialisePassphraseParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, initialisePassphrase, arg.ID, arg.HashedPassword)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const insertNewUser = `-- name: InsertNewUser :one
