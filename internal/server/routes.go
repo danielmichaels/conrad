@@ -29,7 +29,7 @@ func (app *Application) routes() http.Handler {
 
 	router.Get("/status", app.status)
 	router.Group(func(web chi.Router) {
-		web.Use(app.preventCSRF) // todo: allow htmx through
+		web.Use(app.preventCSRF)
 		web.Use(app.authenticate)
 		web.Use(app.requireAnonymousUser)
 		web.Get("/", app.home)
@@ -42,7 +42,7 @@ func (app *Application) routes() http.Handler {
 		noCsrf.Delete("/dashboard/clients/{id}", app.clientHome)
 	})
 	router.Group(func(web chi.Router) {
-		web.Use(app.preventCSRF) // todo: allow htmx through
+		web.Use(app.preventCSRF)
 		web.Use(app.authenticate)
 		web.Use(app.requireAuthenticatedUser)
 		web.Group(func(d chi.Router) {
