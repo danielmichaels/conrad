@@ -53,7 +53,7 @@
           </label>
         </div>
         <div class="grid">
-          <label for="day-picker">
+          <label for="day-picker">Days to execute reminders:
               <select id="day-picker" multiple size="5" name="Days">
                 <option value="Monday" name="Days[]" {{range .Form.Days}}{{if eq . "Monday"}}selected{{end}}{{end}}>Monday</option>
                 <option value="Tuesday" name="Days[]" {{range .Form.Days}}{{if eq . "Tuesday"}}selected{{end}}{{end}}>Tuesday</option>
@@ -63,6 +63,7 @@
                 <option value="Saturday" name="Days[]" {{range .Form.Days}}{{if eq . "Saturday"}}selected{{end}}{{end}}>Saturday</option>
                 <option value="Sunday" name="Days[]" {{range .Form.Days}}{{if eq . "Sunday"}}selected{{end}}{{end}}>Sunday</option>
               </select>
+            <small>Select one or multiple days for the reminders to execute.</small>
           </label>
         </div>
         <button>Submit</button>

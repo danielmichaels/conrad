@@ -233,6 +233,7 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
 	var form struct {
 		RepoID    []int64             `form:"RepoID"`
 		Validator validator.Validator `form:"-"`
@@ -242,7 +243,7 @@ func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w, r)
 		return
 	}
-	client, err := app.Db.GetClientById(context.Background(), id)
+	client, err := app.Db.GetClientById(ctx, id)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			app.serverError(w, r, err)
@@ -251,7 +252,7 @@ func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w, r)
 		return
 	}
-	repos, err := app.Db.GetAllClientRepos(context.Background(), id)
+	repos, err := app.Db.GetAllClientRepos(ctx, id)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			app.serverError(w, r, err)
@@ -272,7 +273,14 @@ func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			app.serverError(w, r, err)
 		}
-
+	case http.MethodDelete:
+		fmt.Println("DELETE")
+		err := app.Db.DeleteClientByID(ctx, id)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		http.Redirect(w, r, "/dashboard/clients", http.StatusOK)
 	case http.MethodPost:
 		err := render.DecodePostForm(r, &form)
 		if err != nil {
@@ -656,8 +664,22 @@ func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Reques
 			app.serverError(w, r, err)
 		}
 	case http.MethodDelete:
-		fmt.Println("DELETE")
-		return
+		err := app.Db.DeleteNotificationsByID(ctx, nid)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		err = app.Db.DeleteNotificationTimesByID(ctx, nid)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		err = app.Db.DeleteNotificationsMattermostByID(ctx, nid)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		http.Redirect(w, r, backURL, http.StatusOK)
 	case http.MethodPost:
 		err := render.DecodePostForm(r, &form)
 		if err != nil {

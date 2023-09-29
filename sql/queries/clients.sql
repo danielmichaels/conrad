@@ -48,3 +48,7 @@ ON CONFLICT(repo_id) DO UPDATE SET name         = excluded.name,
 UPDATE gitlab_repos
 SET tracked = ?
 WHERE repo_id = ?;
+
+-- name: DeleteClientByID :exec
+DELETE FROM gitlab_clients
+WHERE id = ?;

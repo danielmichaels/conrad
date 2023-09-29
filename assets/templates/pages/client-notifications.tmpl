@@ -53,7 +53,10 @@
                          href="{{$furl}}/{{.ID}}">View</a>
                       <a class="outline secondary" role="button"
                          hx-delete="/dashboard/clients/{{$clientID}}/notifications/{{.ID}}"
-                         hx-confirm="Are you sure?">Delete</a>
+                         hx-confirm="Are you sure?"
+                         hx-target="closest tr"
+                         hx-swap="outerHTML swap:1s"
+                      >Delete</a>
                     </div>
                   </td>
                 </tr>

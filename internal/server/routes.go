@@ -38,6 +38,8 @@ func (app *Application) routes() http.Handler {
 	})
 	router.Group(func(noCsrf chi.Router) {
 		noCsrf.Post("/logout", app.userLogout)
+		noCsrf.Delete("/dashboard/clients/{id}/notifications/{nid}", app.notificationDetail)
+		noCsrf.Delete("/dashboard/clients/{id}", app.clientHome)
 	})
 	router.Group(func(web chi.Router) {
 		web.Use(app.preventCSRF) // todo: allow htmx through
@@ -57,7 +59,6 @@ func (app *Application) routes() http.Handler {
 			d.Post("/dashboard/clients/{id}/notifications/mattermost", app.mattermostNotification)
 			d.Get("/dashboard/clients/{id}/notifications/{nid}", app.notificationDetail)
 			d.Post("/dashboard/clients/{id}/notifications/{nid}", app.notificationDetail)
-			d.Delete("/dashboard/clients/{id}/notifications/{nid}", app.notificationDetail)
 		})
 	})
 	router.Group(func(api chi.Router) {

@@ -10,6 +10,36 @@ import (
 	"database/sql"
 )
 
+const deleteNotificationTimesByID = `-- name: DeleteNotificationTimesByID :exec
+DELETE FROM notification_times
+WHERE notification_id = ?
+`
+
+func (q *Queries) DeleteNotificationTimesByID(ctx context.Context, notificationID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteNotificationTimesByID, notificationID)
+	return err
+}
+
+const deleteNotificationsByID = `-- name: DeleteNotificationsByID :exec
+DELETE FROM notifications
+WHERE id = ?
+`
+
+func (q *Queries) DeleteNotificationsByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteNotificationsByID, id)
+	return err
+}
+
+const deleteNotificationsMattermostByID = `-- name: DeleteNotificationsMattermostByID :exec
+DELETE FROM notifications_mattermost
+WHERE notification_id = ?
+`
+
+func (q *Queries) DeleteNotificationsMattermostByID(ctx context.Context, notificationID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteNotificationsMattermostByID, notificationID)
+	return err
+}
+
 const getAllNotifications = `-- name: GetAllNotifications :many
 SELECT n.id, n.enabled, n.name, n.created_at, n.updated_at, n.client_id, n.ignore_drafts, n.remind_authors, n.ignore_approved, n.min_age, n.min_staleness, n.ignore_terms, n.ignore_labels, n.require_labels, n.days,
        nt.id AS notification_time_id,
@@ -184,7 +214,6 @@ type InsertNotificationParams struct {
 	Days           string         `json:"days"`
 }
 
-// ON CONFLICT DO NOTHING
 func (q *Queries) InsertNotification(ctx context.Context, arg InsertNotificationParams) (int64, error) {
 	row := q.db.QueryRowContext(ctx, insertNotification,
 		arg.Enabled,

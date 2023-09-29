@@ -24,7 +24,11 @@
                 <td>
                   <div role="group">
                     <a class="outline" role="button" href="{{$furl}}/{{.ID}}">View</a>
-                    <a class="outline secondary" role="button" href="#" @click="console.log('this will delete, are you sure?')">Delete</a>
+                    <a class="outline secondary" role="button"
+                       hx-delete="{{$furl}}/{{.ID}}"
+                       hx-confirm="Are you sure?"
+                       hx-target="closest tr"
+                       hx-swap="outerHTML swap:1s">Delete</a>
                   </div>
               </tr>
         {{end}}

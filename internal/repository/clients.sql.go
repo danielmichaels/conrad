@@ -9,6 +9,16 @@ import (
 	"context"
 )
 
+const deleteClientByID = `-- name: DeleteClientByID :exec
+DELETE FROM gitlab_clients
+WHERE id = ?
+`
+
+func (q *Queries) DeleteClientByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteClientByID, id)
+	return err
+}
+
 const getAllClientRepos = `-- name: GetAllClientRepos :many
 SELECT gr.repo_id, gr.repo_web_url, gr.tracked, gr.name, gr.created_at, gr.updated_at, gr.client_id
 FROM gitlab_repos gr

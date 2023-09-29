@@ -100,3 +100,16 @@ RETURNING id;
 UPDATE notifications
 SET enabled = ?
 WHERE notifications.id = ?;
+
+-- name: DeleteNotificationsMattermostByID :exec
+DELETE FROM notifications_mattermost
+WHERE notification_id = ?;
+
+-- name: DeleteNotificationTimesByID :exec
+DELETE FROM notification_times
+WHERE notification_id = ?;
+
+-- name: DeleteNotificationsByID :exec
+DELETE FROM notifications
+WHERE id = ?;
+
