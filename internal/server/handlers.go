@@ -227,6 +227,7 @@ func (app *Application) clients(w http.ResponseWriter, r *http.Request) {
 					"repo_id": p.ID,
 				}).Send()
 			}
+			app.Logger.Debug().Str("project", p.Name).Int("id", p.ID).Msg("insert-client-repo")
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("/dashboard/clients/%d", id), http.StatusSeeOther)
@@ -274,7 +275,6 @@ func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 			app.serverError(w, r, err)
 		}
 	case http.MethodDelete:
-		fmt.Println("DELETE")
 		err := app.Db.DeleteClientByID(ctx, id)
 		if err != nil {
 			app.serverError(w, r, err)
@@ -313,9 +313,6 @@ func (app *Application) clientHome(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func convStrBoolToBool(v string) bool {
-	return v == "true"
-}
 func (app *Application) clientGitlab(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	var form struct {
@@ -593,41 +590,6 @@ func (app *Application) mattermostNotification(w http.ResponseWriter, r *http.Re
 
 		http.Redirect(w, r, backURL, http.StatusSeeOther)
 	}
-}
-
-type notificationForm struct {
-	Name          string   `form:"Name"`
-	Enabled       int64    `form:"Enabled"`
-	IgnoreDrafts  int64    `form:"IgnoreDrafts"`
-	RemindAuthors int64    `form:"RemindAuthors"`
-	MinAge        int64    `form:"MinAge"`
-	MinStaleness  int64    `form:"MinStaleness"`
-	IgnoreTerms   string   `form:"IgnoreTerms"`
-	IgnoreLabels  string   `form:"IgnoreLabels"`
-	RequireLabels int64    `form:"RequireLabels"`
-	Days          []string `form:"Days"`
-	// schedule
-	ScheduleTimes []string `form:"ScheduleTimes"`
-	// mattermost specific
-	WebhookURL string              `form:"WebhookURL"`
-	Channel    string              `form:"Channel"`
-	Validator  validator.Validator `form:"-"`
-}
-
-func (f *notificationForm) fill(n *repository.GetNotificationByIDRow) {
-	f.Name = n.Name
-	f.Enabled = n.Enabled
-	f.IgnoreDrafts = n.IgnoreDrafts
-	f.RemindAuthors = n.RemindAuthors
-	f.MinAge = n.MinAge
-	f.MinStaleness = n.MinStaleness
-	f.IgnoreTerms = n.IgnoreTerms.String
-	f.IgnoreLabels = n.IgnoreLabels.String
-	f.RequireLabels = n.RequireLabels
-	f.ScheduleTimes = strings.Split(n.ScheduledTime.String, ",")
-	f.WebhookURL = n.WebhookUrl.String
-	f.Channel = n.MattermostChannel.String
-	f.Days = strings.Split(n.Days, ",")
 }
 
 func (app *Application) notificationDetail(w http.ResponseWriter, r *http.Request) {
